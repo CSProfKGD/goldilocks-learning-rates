@@ -799,8 +799,9 @@ export default function Home() {
       <span className="sr-only" aria-live="polite">{phaseLabel}</span>
 
       <aside
-        className="loss-chart"
+        className={`loss-chart ${playing || complete || resetting ? "is-visible" : ""}`}
         aria-label={`Loss versus iteration for the ${PRESETS[selected].label.toLowerCase()} learning rate`}
+        aria-hidden={!(playing || complete || resetting)}
         style={{ color: PRESETS[selected].color }}
       >
         <p className="loss-chart-heading">Loss <span>vs iteration</span></p>
