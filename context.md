@@ -57,9 +57,9 @@ The exact timings should be tuned by eye after implementation. The following is 
 | Ready | Before play | Show the empty 3D parabola from an elegant three-quarter perspective. Bottom controls are visible. Contours and ball are hidden. |
 | Camera move | 0.0–1.8 s | On play, smoothly rotate and zoom the centered, distant bowl toward a true or near-true top view. Rotation and zoom ease in and out together; there is no hard cut. |
 | Contour reveal | 0.22–1.68 s | During the camera move, the complete restrained contour field dissolves in together with one shared opacity curve. |
-| Ball entrance | 2.50–3.10 s | One ball appears at the shared initial point with a refined damped scale bounce. |
-| Anticipation | 3.10–3.40 s | Brief pause so the viewer registers the start position and contours. |
-| Descent | 3.40 s onward | Run gradient descent using the selected preset. As the ball moves, reveal a trail through its actual past positions. Camera remains stable and the ball's motion is the focus. |
+| Ball entrance | 2.45–3.35 s | One ball appears at the shared initial point with a pronounced damped scale bounce. |
+| Anticipation | 3.35–3.80 s | Brief pause so the viewer registers the start position and contours. |
+| Descent | 3.80 s onward | Run gradient descent using the selected preset. As the ball moves, reveal a trail through its actual past positions. Camera remains stable and the ball's motion is the focus. |
 | Resolve | End | Hold the final ball and trail without an outcome label. Play becomes Reset, and the three preset choices remain locked. Reset is the only available action until its reverse transition finishes; then the presets and Play become available again. |
 
 The contour reveal may overlap the latter part of the camera move, but it should not begin so early that the opening perspective becomes visually busy.
@@ -93,7 +93,7 @@ The deterministic quadratic uses eigenvalue curvatures `0.56` and `0.23`, 18 upd
 
 - Camera: smooth, confident, slow-in/slow-out, with no visible snapping at the end.
 - Contours: the complete field dissolves in together during rotation and zoom; no per-ring delay or harsh toggle.
-- Ball entrance: a 600 ms damped scale bounce—grow quickly to `1.10×`, then alternate through progressively smaller under/overshoots before settling exactly at `1×`. Reduced-motion playback uses a single eased scale-in without oscillation.
+- Ball entrance: a pronounced 900 ms damped scale bounce—grow quickly to `1.22×`, rebound clearly below final size, then alternate through progressively smaller under/overshoots before settling exactly at `1×`. Reduced-motion playback uses a single eased scale-in without oscillation.
 - Gradient descent: positions should come from the optimization algorithm. Interpolate between algorithm steps only to make the true sequence readable and fluid.
 - Trail: extend it from the ball's sampled position history as descent progresses. Its luminous core, soft halo, and sequential position markers use cyan for Too low, coral for Too large, and green for Just right.
 - Ending: gently hold the final ball and trail. Do not add a label, badge, or celebratory effect around the ball.

@@ -53,10 +53,10 @@ function ballPopScale(value: number, reducedMotion = false) {
   if (value <= 0) return 0;
   if (value >= 1) return 1;
   if (reducedMotion) return easeOutCubic(value);
-  if (value < 0.28) return 1.1 * easeOutCubic(value / 0.28);
+  if (value < 0.3) return 1.22 * easeOutCubic(value / 0.3);
 
-  const bounce = (value - 0.28) / 0.72;
-  const shrinkingAmplitude = 0.1 * Math.pow(1 - bounce, 2);
+  const bounce = (value - 0.3) / 0.7;
+  const shrinkingAmplitude = 0.22 * Math.pow(1 - bounce, 2);
   return 1 + shrinkingAmplitude * Math.cos(5 * Math.PI * bounce);
 }
 
@@ -274,7 +274,7 @@ export default function Home() {
 
     const phaseTimes = reducedMotion
       ? { rotateEnd: 260, contourStart: 50, contourEnd: 240, ballStart: 660, ballEnd: 840, descentStart: 940, descentEnd: 2920 }
-      : { rotateEnd: 1800, contourStart: 220, contourEnd: 1680, ballStart: 2500, ballEnd: 3100, descentStart: 3400, descentEnd: 7700 };
+      : { rotateEnd: 1800, contourStart: 220, contourEnd: 1680, ballStart: 2450, ballEnd: 3350, descentStart: 3800, descentEnd: 8100 };
 
     const onMotionChange = (event: MediaQueryListEvent) => {
       reducedMotion = event.matches;
