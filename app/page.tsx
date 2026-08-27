@@ -35,7 +35,7 @@ const PRESETS: Record<
 const LAMBDA_U = 0.56;
 const LAMBDA_V = 0.23;
 const ROTATION = 0.43;
-const START_EIGEN = { u: -3.8, v: 3.0 };
+const START_EIGEN = { u: 3.8, v: -3.0 };
 const STEP_COUNT = 18;
 const SURFACE_HEIGHT = 0.72;
 
@@ -46,7 +46,7 @@ function easeInOutCubic(value: number) {
 }
 
 function easeOutBack(value: number) {
-  const overshoot = 1.12;
+  const overshoot = 1.42;
   return 1 + (overshoot + 1) * Math.pow(value - 1, 3) + overshoot * Math.pow(value - 1, 2);
 }
 
@@ -301,8 +301,8 @@ export default function Home() {
         width < 900 ? 0.5 : 0.54 + cameraProgress * 0.14
       );
       const originY = height * (0.56 - cameraProgress * 0.065);
-      const pitch = 0.48 * (1 - cameraProgress);
-      const yaw = -0.62 + cameraProgress * 0.19;
+      const pitch = 0.28 * (1 - cameraProgress);
+      const yaw = -1.12 + cameraProgress * 0.69;
 
       const project = (x: number, y: number, z: number) => {
         const cosYaw = Math.cos(yaw);
@@ -318,31 +318,25 @@ export default function Home() {
         };
       };
 
-      const surfaceRadius = 4.8 + cameraProgress * 14.6;
-      const xExtent = 4.5 + cameraProgress * 11.5;
-      const yExtent = 4 + cameraProgress * 10;
-      const visibleHeightRange = 0.5 * 4.8 * 4.8;
+      const surfaceRadius = 3.9 + cameraProgress * 15.5;
+      const visibleHeightRange = 0.5 * 4 * 4;
       surfaceContext.clearRect(0, 0, width, height);
       surfaceContext.save();
       const boundarySteps = 180;
       const traceBoundary = (target: CanvasRenderingContext2D) => {
         target.beginPath();
-        const traceEdgePoint = (x: number, y: number, move = false) => {
-          const projected = project(x, y, loss(x, y) * SURFACE_HEIGHT);
-          if (move) target.moveTo(projected.x, projected.y);
-          else target.lineTo(projected.x, projected.y);
-        };
         for (let index = 0; index <= boundarySteps; index += 1) {
-          traceEdgePoint(-xExtent + (index / boundarySteps) * xExtent * 2, -yExtent, index === 0);
-        }
-        for (let index = 1; index <= boundarySteps; index += 1) {
-          traceEdgePoint(xExtent, -yExtent + (index / boundarySteps) * yExtent * 2);
-        }
-        for (let index = 1; index <= boundarySteps; index += 1) {
-          traceEdgePoint(xExtent - (index / boundarySteps) * xExtent * 2, yExtent);
-        }
-        for (let index = 1; index <= boundarySteps; index += 1) {
-          traceEdgePoint(-xExtent, yExtent - (index / boundarySteps) * yExtent * 2);
+          const angle = (index / boundarySteps) * Math.PI * 2;
+          const u = (surfaceRadius / Math.sqrt(LAMBDA_U)) * Math.cos(angle);
+          const v = (surfaceRadius / Math.sqrt(LAMBDA_V)) * Math.sin(angle);
+          const point = eigenToWorld(u, v);
+          const projected = project(
+            point.x,
+            point.y,
+            0.5 * surfaceRadius * surfaceRadius * SURFACE_HEIGHT,
+          );
+          if (index === 0) target.moveTo(projected.x, projected.y);
+          else target.lineTo(projected.x, projected.y);
         }
         target.closePath();
       };
@@ -388,6 +382,21 @@ export default function Home() {
       surfaceContext.fillStyle = directionalLight;
       surfaceContext.fillRect(0, 0, width, height);
 
+      const projectedValley = project(0, 0, 0);
+      const valleyShade = surfaceContext.createRadialGradient(
+        projectedValley.x,
+        projectedValley.y,
+        0,
+        projectedValley.x,
+        projectedValley.y,
+        scale * 3.8,
+      );
+      valleyShade.addColorStop(0, "rgba(0, 0, 0, 0.2)");
+      valleyShade.addColorStop(0.72, "rgba(0, 0, 0, 0.035)");
+      valleyShade.addColorStop(1, "rgba(0, 0, 0, 0)");
+      surfaceContext.fillStyle = valleyShade;
+      surfaceContext.fillRect(0, 0, width, height);
+
       const edgeGradient = surfaceContext.createRadialGradient(
         originX,
         originY,
@@ -397,7 +406,7 @@ export default function Home() {
         scale * 4.9,
       );
       edgeGradient.addColorStop(0, "rgba(0, 0, 0, 0)");
-      edgeGradient.addColorStop(1, `rgba(0, 0, 0, ${0.2 + 0.08 * (1 - cameraProgress)})`);
+      edgeGradient.addColorStop(1, `rgba(0, 0, 0, ${0.12 + 0.05 * (1 - cameraProgress)})`);
       surfaceContext.fillStyle = edgeGradient;
       surfaceContext.fillRect(0, 0, width, height);
       traceBoundary(surfaceContext);
@@ -419,7 +428,39 @@ export default function Home() {
 
       context.save();
       traceBoundary(context);
+      context.strokeStyle = "rgba(154, 205, 237, 0.12)";
+      context.lineWidth = 1;
+      context.stroke();
+      context.restore();
+
+      context.save();
+      traceBoundary(context);
       context.clip();
+
+      if (contourAlpha < 1) {
+        context.save();
+        const cueAlpha = (1 - contourAlpha) * 0.085;
+        for (const radius of [0.72, 1.28, 1.9, 2.58, 3.34]) {
+          context.beginPath();
+          for (let index = 0; index <= 100; index += 1) {
+            const angle = (index / 100) * Math.PI * 2;
+            const u = (radius / Math.sqrt(LAMBDA_U)) * Math.cos(angle);
+            const v = (radius / Math.sqrt(LAMBDA_V)) * Math.sin(angle);
+            const point = eigenToWorld(u, v);
+            const projected = project(
+              point.x,
+              point.y,
+              loss(point.x, point.y) * SURFACE_HEIGHT + 0.012,
+            );
+            if (index === 0) context.moveTo(projected.x, projected.y);
+            else context.lineTo(projected.x, projected.y);
+          }
+          context.strokeStyle = `rgba(190, 216, 238, ${cueAlpha})`;
+          context.lineWidth = 0.75;
+          context.stroke();
+        }
+        context.restore();
+      }
 
       if (contourAlpha > 0) {
         context.save();
