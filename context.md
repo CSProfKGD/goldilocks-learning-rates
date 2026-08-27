@@ -39,7 +39,7 @@ The bottom control area contains three mutually exclusive learning-rate choices:
 2. `Too large`
 3. `Just right`
 
-Each option includes its numeric learning rate. It also provides a clear play control that becomes `Reset` after a run; Reset returns to the ready frame and waits for a new Play. The selected option is unmistakable but visually quiet, using semantic color and type rather than a boxed selection. Controls live in a tightly fitted translucent glass panel with minimal unused space and remain anchored and stable while the scene animates. At viewport widths of 900px and below, the three presets remain in one horizontal row while Play/Reset becomes a large 52px-high full-width row beneath them.
+Each option includes its numeric learning rate. It also provides a clear play control that becomes `Reset` after a run; Reset returns to the ready frame and waits for a new Play. The selected option is unmistakable but visually quiet, using semantic color and type rather than a boxed selection. Controls live in a tightly fitted translucent glass panel with minimal unused space and remain anchored and stable while the scene animates. At viewport widths of 900px and below, the three presets remain in one horizontal row while Play/Reset becomes a full-width row beneath them. Its height is 52px for compact tablet layouts and tightens to a 44px tap target at 720px and below.
 
 Initial default: **Just right**.
 

@@ -349,6 +349,11 @@ h1 {
 }
 
 @media (max-width: 720px) {
+  .play-button {
+    height: 44px;
+    margin-top: 2px;
+  }
+
   .experience::before {
     background: linear-gradient(
       180deg,
