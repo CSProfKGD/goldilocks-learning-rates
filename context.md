@@ -20,9 +20,9 @@ The requested starting point was the **Gradient Descent** project, but its sourc
 
 ## Core scene
 
-- One smooth 3D upward-opening paraboloid representing the loss landscape. In its principal coordinates the surface is the explicit positive quadratic `z = 0.5 λu u² + 0.5 λv v²`, with both eigenvalues positive and no cross term. The center is the unique minimum. The opening is clipped at one constant positive loss value, producing a smooth horizontal elliptical rim with no corners, cusp, rear peak, or negative curvature. That analytical domain expands during the camera move until it extends beyond the scene, making the browser viewport the visible clipping boundary in the top view.
+- One smooth 3D upward-opening paraboloid representing the loss landscape. In its principal coordinates the surface is the explicit positive quadratic `z = 0.5 λu u² + 0.5 λv v²`, with both eigenvalues positive and no cross term. The center is the unique minimum. The opening frame shows a finite rectangular parameter-domain patch, so its four corners and four smoothly curved boundary arcs read like the supplied reference without altering the positive curvature of the bowl. During the camera move it crossfades to a constant-loss elliptical domain that expands beyond the scene, making the browser viewport the visible clipping boundary in the top view.
 - The experience uses a pure black background with no top header, logo strip, status strip, or header divider.
-- The surface uses a height-normalized cool gradient: midnight indigo in the valley, royal blue through the lower slopes, restrained cyan/teal at upper-middle elevations, and lavender-blue at the highest peaks. Dense filled elevation bands are generated from the same analytical loss ellipses and projected surface heights as the contours, then clipped through the high-resolution analytical elliptical rim. Lighting is applied once as a continuous surface-wide pass rather than separately per elevation band, preventing visible color rings while retaining a crisp silhouette. The opening camera is raised and tilted downward so the minimum, near slope, far slope, and complete smooth rim remain visible; the domain expands beyond the viewport by the top view. The offscreen surface buffer renders at the full device-pixel ratio and composites without blur, preserving a sharp edge and smoothly varying interior color through the full camera move.
+- The surface uses a continuous reference-matched height gradient: deep blue at the unique minimum, then royal blue, cyan, aqua, yellow-green, yellow, orange, and red at the highest elevations. The oblique opening is a finite rectangular patch of the same positive quadratic, rendered with depth-sorted cells so all four curved surface boundaries and the near/far slopes occlude correctly. Height is interpolated continuously within each cell, then one surface-wide directional and valley-lighting pass supplies smooth curvature without visible mesh texture. During rotation it crossfades into dense filled elevation bands generated from the same analytical loss ellipses and projected heights; this top-view renderer inherits the same continuous palette. Domain expansion uses a delayed squared progression so the opening remains compositionally stable before the surface fills the top view. The offscreen surface buffer renders at full device-pixel ratio with a subpixel antialiasing pass and a crisp unfiltered composite, preserving both smooth color and a sharp silhouette.
 - One ball representing the current parameter state.
 - One trail outlining that ball's past positions, matching the treatment used in the source Gradient Descent project.
 - No isocurve plane.
@@ -88,7 +88,7 @@ The deterministic quadratic uses eigenvalue curvatures `0.56` and `0.23`, 18 upd
 
 - Camera: smooth, confident, slow-in/slow-out, with no visible snapping at the end.
 - Contours: the complete field dissolves in together during rotation and zoom; no per-ring delay or harsh toggle.
-- Ball entrance: restrained scale overshoot and settle—a small, polished bounce lasting only a few hundred milliseconds.
+- Ball entrance: a restrained damped scale bounce with one small overshoot, a subtler rebound, and a quick settle within the existing 300 ms entrance window.
 - Gradient descent: positions should come from the optimization algorithm. Interpolate between algorithm steps only to make the true sequence readable and fluid.
 - Trail: extend it from the ball's sampled position history as descent progresses. Its luminous core, soft halo, and sequential position markers use cyan for Too low, coral for Too large, and green for Just right.
 - Ending: gently hold the final ball and trail. Do not add a label, badge, or celebratory effect around the ball.
@@ -109,6 +109,7 @@ Some visual phases may overlap on the timeline even if the logical state has one
 - Respect reduced-motion preferences with a short crossfade/reframe and fewer interpolated descent movements.
 - Keep controls usable and the bowl legible on smaller screens; adjust framing and spacing rather than shrinking everything indiscriminately.
 - During live window resizing, retain and scale the last rendered canvas frame. Resize the backing buffers and redraw atomically after dimensions settle so the surface, contours, ball, and trail never flash blank.
+- The expensive depth-sorted side renderer is limited to a short opening phase with a bounded high-resolution cell budget, then hands off to the analytical top-view renderer. Ready frames do not redraw continuously. Image quality is the primary constraint; frame cadence is tuned afterward so the motion remains fluid rather than enforcing a hard 60 Hz ceiling.
 
 ## Resolved implementation choices
 

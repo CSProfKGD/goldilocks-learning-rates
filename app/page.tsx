@@ -45,9 +45,10 @@ function easeInOutCubic(value: number) {
     : 1 - Math.pow(-2 * value + 2, 3) / 2;
 }
 
-function easeOutBack(value: number) {
-  const overshoot = 1.42;
-  return 1 + (overshoot + 1) * Math.pow(value - 1, 3) + overshoot * Math.pow(value - 1, 2);
+function easeOutPop(value: number) {
+  if (value <= 0) return 0;
+  if (value >= 1) return 1;
+  return 1 - Math.exp(-6 * value) * Math.cos(2.8 * Math.PI * value);
 }
 
 function clamp(value: number, min = 0, max = 1) {
@@ -64,13 +65,14 @@ function hexToRgb(hex: string) {
 }
 
 const SURFACE_PALETTE = [
-  { at: 0, color: [17, 26, 70] },
-  { at: 0.18, color: [23, 33, 92] },
-  { at: 0.42, color: [36, 72, 168] },
-  { at: 0.62, color: [40, 100, 199] },
-  { at: 0.8, color: [22, 143, 184] },
-  { at: 0.92, color: [36, 193, 192] },
-  { at: 1, color: [112, 96, 209] },
+  { at: 0, color: [31, 39, 190] },
+  { at: 0.2, color: [42, 78, 211] },
+  { at: 0.38, color: [57, 157, 221] },
+  { at: 0.54, color: [94, 205, 194] },
+  { at: 0.68, color: [191, 221, 79] },
+  { at: 0.8, color: [239, 207, 44] },
+  { at: 0.91, color: [229, 111, 34] },
+  { at: 1, color: [184, 48, 34] },
 ] as const;
 
 function surfaceColor(tone: number, luminance = 1) {
@@ -178,6 +180,9 @@ export default function Home() {
     const surfaceCanvas = document.createElement("canvas");
     const surfaceContext = surfaceCanvas.getContext("2d");
     if (!surfaceContext) return;
+    const meshCanvas = document.createElement("canvas");
+    const meshContext = meshCanvas.getContext("2d");
+    if (!meshContext) return;
 
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
     let reducedMotion = media.matches;
@@ -229,8 +234,16 @@ export default function Home() {
         surfaceCanvas.width = surfaceWidth;
         surfaceCanvas.height = surfaceHeight;
       }
+      if (
+        meshCanvas.width !== surfaceWidth ||
+        meshCanvas.height !== surfaceHeight
+      ) {
+        meshCanvas.width = surfaceWidth;
+        meshCanvas.height = surfaceHeight;
+      }
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
       surfaceContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+      meshContext.setTransform(dpr, 0, 0, dpr, 0, 0);
       if (changed && drawLatest) {
         if (animationRef.current) cancelAnimationFrame(animationRef.current);
         drawLatest(performance.now());
@@ -296,7 +309,7 @@ export default function Home() {
       context.clearRect(0, 0, width, height);
 
       const baseScale = Math.min(width / 10.8, height / 7.8);
-      const scale = baseScale * (0.36 + cameraProgress * 0.64);
+      const scale = baseScale * (0.32 + cameraProgress * 0.68);
       const compactDesktopOffset = clamp((1280 - width) / 380);
       const openingOriginX = width * (
         width <= 720 ? 0.5 : 0.54 + compactDesktopOffset * 0.12
@@ -305,8 +318,8 @@ export default function Home() {
         ? width * 0.5
         : Math.min(width * 0.6, width - 52 - START_EIGEN.u * baseScale);
       const originX = openingOriginX + (topOriginX - openingOriginX) * cameraProgress;
-      const originY = height * (0.56 - cameraProgress * 0.065);
-      const pitch = 0.5 * (1 - cameraProgress);
+      const originY = height * (0.6 - cameraProgress * 0.105);
+      const pitch = 0.86 * (1 - cameraProgress);
       const yaw = -1.12 + cameraProgress * 0.69;
 
       const project = (x: number, y: number, z: number) => {
@@ -323,10 +336,9 @@ export default function Home() {
         };
       };
 
-      const surfaceRadius = 3.9 + cameraProgress * 15.5;
-      const visibleHeightRange = 0.5 * 4 * 4;
+      const surfaceRadius = 3.25 + cameraProgress * cameraProgress * 16.15;
+      const visibleHeightRange = 10.5;
       surfaceContext.clearRect(0, 0, width, height);
-      surfaceContext.save();
       const boundarySteps = 180;
       const traceBoundary = (target: CanvasRenderingContext2D) => {
         target.beginPath();
@@ -345,6 +357,129 @@ export default function Home() {
         }
         target.closePath();
       };
+
+      const bandBlend = easeInOutCubic(clamp((cameraProgress - 0.18) / 0.34));
+      const meshAlpha = 1 - bandBlend;
+      meshContext.clearRect(0, 0, width, height);
+      if (meshAlpha > 0) {
+        const uSteps = 64;
+        const vSteps = 64;
+        const cells: Array<{
+          points: ReturnType<typeof project>[];
+          depth: number;
+          gradientStart: ReturnType<typeof project>;
+          gradientEnd: ReturnType<typeof project>;
+          startColor: string;
+          endColor: string;
+        }> = [];
+        const uExtent = surfaceRadius / Math.sqrt(LAMBDA_U);
+        const vExtent = surfaceRadius / Math.sqrt(LAMBDA_V);
+        const surfacePoint = (u: number, v: number) => {
+          const point = eigenToWorld(u, v);
+          return {
+            ...project(point.x, point.y, loss(point.x, point.y) * SURFACE_HEIGHT),
+            level: loss(point.x, point.y),
+          };
+        };
+        for (let uIndex = 0; uIndex < uSteps; uIndex += 1) {
+          const u0 = -uExtent + (uIndex / uSteps) * uExtent * 2;
+          const u1 = -uExtent + ((uIndex + 1) / uSteps) * uExtent * 2;
+          for (let vIndex = 0; vIndex < vSteps; vIndex += 1) {
+            const v0 = -vExtent + (vIndex / vSteps) * vExtent * 2;
+            const v1 = -vExtent + ((vIndex + 1) / vSteps) * vExtent * 2;
+            const points = [
+              surfacePoint(u0, v0),
+              surfacePoint(u1, v0),
+              surfacePoint(u1, v1),
+              surfacePoint(u0, v1),
+            ];
+            const orderedByHeight = [...points].sort((a, b) => a.level - b.level);
+            const gradientStart = orderedByHeight[0];
+            const gradientEnd = orderedByHeight[orderedByHeight.length - 1];
+            const startTone = Math.pow(
+              clamp(gradientStart.level / visibleHeightRange),
+              0.72,
+            );
+            const endTone = Math.pow(
+              clamp(gradientEnd.level / visibleHeightRange),
+              0.72,
+            );
+            cells.push({
+              points,
+              depth: points.reduce((sum, point) => sum + point.depth, 0) / points.length,
+              gradientStart,
+              gradientEnd,
+              startColor: surfaceColor(startTone),
+              endColor: surfaceColor(endTone),
+            });
+          }
+        }
+        cells.sort((a, b) => a.depth - b.depth);
+        meshContext.save();
+        meshContext.lineJoin = "round";
+        for (const cell of cells) {
+          const cellGradient = meshContext.createLinearGradient(
+            cell.gradientStart.x,
+            cell.gradientStart.y,
+            cell.gradientEnd.x,
+            cell.gradientEnd.y,
+          );
+          cellGradient.addColorStop(0, cell.startColor);
+          cellGradient.addColorStop(1, cell.endColor);
+          meshContext.beginPath();
+          meshContext.moveTo(cell.points[0].x, cell.points[0].y);
+          for (let index = 1; index < cell.points.length; index += 1) {
+            meshContext.lineTo(cell.points[index].x, cell.points[index].y);
+          }
+          meshContext.closePath();
+          meshContext.fillStyle = cellGradient;
+          meshContext.fill();
+          meshContext.strokeStyle = cellGradient;
+          meshContext.lineWidth = 0.6;
+          meshContext.stroke();
+        }
+        meshContext.restore();
+
+        meshContext.save();
+        meshContext.globalCompositeOperation = "source-atop";
+        const meshLight = meshContext.createLinearGradient(
+          width * 0.34,
+          height * 0.16,
+          width * 0.82,
+          height * 0.68,
+        );
+        meshLight.addColorStop(0, "rgba(255, 255, 255, 0.085)");
+        meshLight.addColorStop(0.5, "rgba(255, 255, 255, 0)");
+        meshLight.addColorStop(1, "rgba(0, 0, 0, 0.16)");
+        meshContext.fillStyle = meshLight;
+        meshContext.fillRect(0, 0, width, height);
+        const meshValley = project(0, 0, 0);
+        const meshValleyShade = meshContext.createRadialGradient(
+          meshValley.x,
+          meshValley.y,
+          0,
+          meshValley.x,
+          meshValley.y,
+          scale * 3.6,
+        );
+        meshValleyShade.addColorStop(0, "rgba(0, 0, 0, 0.18)");
+        meshValleyShade.addColorStop(1, "rgba(0, 0, 0, 0)");
+        meshContext.fillStyle = meshValleyShade;
+        meshContext.fillRect(0, 0, width, height);
+        meshContext.restore();
+
+        surfaceContext.save();
+        surfaceContext.globalAlpha = meshAlpha;
+        surfaceContext.filter = "blur(0.55px)";
+        surfaceContext.drawImage(meshCanvas, 0, 0, width, height);
+        surfaceContext.filter = "none";
+        surfaceContext.globalAlpha = meshAlpha * 0.28;
+        surfaceContext.drawImage(meshCanvas, 0, 0, width, height);
+        surfaceContext.restore();
+      }
+
+      surfaceContext.save();
+      surfaceContext.globalAlpha = bandBlend;
       traceBoundary(surfaceContext);
       surfaceContext.clip();
       surfaceContext.fillStyle = surfaceColor(1, 0.86);
@@ -432,6 +567,7 @@ export default function Home() {
       context.restore();
 
       context.save();
+      context.globalAlpha = bandBlend;
       traceBoundary(context);
       context.strokeStyle = "rgba(154, 205, 237, 0.12)";
       context.lineWidth = 1;
@@ -522,7 +658,7 @@ export default function Home() {
         }
 
         const projectedBall = project(ball.x, ball.y, loss(ball.x, ball.y) * SURFACE_HEIGHT + 0.12);
-        const pop = easeOutBack(ballProgress);
+        const pop = easeOutPop(ballProgress);
         const radius = (5.4 + Math.min(width, height) * 0.0024) * pop;
         const glow = context.createRadialGradient(
           projectedBall.x,
@@ -590,7 +726,7 @@ export default function Home() {
         setPhaseLabel("Ready to descend");
       }
 
-      animationRef.current = requestAnimationFrame(draw);
+      animationRef.current = playing || resetting ? requestAnimationFrame(draw) : null;
     };
 
     drawLatest = draw;
