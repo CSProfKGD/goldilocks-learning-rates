@@ -49,16 +49,15 @@ function easeOutCubic(value: number) {
   return 1 - Math.pow(1 - value, 3);
 }
 
-function ballPopScale(value: number) {
+function ballPopScale(value: number, reducedMotion = false) {
   if (value <= 0) return 0;
   if (value >= 1) return 1;
-  if (value < 0.5) {
-    return 1.08 * easeOutCubic(value / 0.5);
-  }
-  if (value < 0.76) {
-    return 1.08 + (0.96 - 1.08) * easeInOutCubic((value - 0.5) / 0.26);
-  }
-  return 0.96 + (1 - 0.96) * easeInOutCubic((value - 0.76) / 0.24);
+  if (reducedMotion) return easeOutCubic(value);
+  if (value < 0.28) return 1.1 * easeOutCubic(value / 0.28);
+
+  const bounce = (value - 0.28) / 0.72;
+  const shrinkingAmplitude = 0.1 * Math.pow(1 - bounce, 2);
+  return 1 + shrinkingAmplitude * Math.cos(5 * Math.PI * bounce);
 }
 
 function clamp(value: number, min = 0, max = 1) {
@@ -275,7 +274,7 @@ export default function Home() {
 
     const phaseTimes = reducedMotion
       ? { rotateEnd: 260, contourStart: 50, contourEnd: 240, ballStart: 660, ballEnd: 840, descentStart: 940, descentEnd: 2920 }
-      : { rotateEnd: 1800, contourStart: 220, contourEnd: 1680, ballStart: 2550, ballEnd: 2850, descentStart: 3300, descentEnd: 7600 };
+      : { rotateEnd: 1800, contourStart: 220, contourEnd: 1680, ballStart: 2500, ballEnd: 3100, descentStart: 3400, descentEnd: 7700 };
 
     const onMotionChange = (event: MediaQueryListEvent) => {
       reducedMotion = event.matches;
@@ -611,7 +610,7 @@ export default function Home() {
         }
 
         const projectedBall = project(ball.x, ball.y, loss(ball.x, ball.y) * SURFACE_HEIGHT + 0.12);
-        const pop = ballPopScale(ballProgress);
+        const pop = ballPopScale(ballProgress, reducedMotion);
         const radius = (5.4 + Math.min(width, height) * 0.0024) * pop;
         const glow = context.createRadialGradient(
           projectedBall.x,
