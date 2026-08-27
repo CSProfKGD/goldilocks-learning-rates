@@ -178,8 +178,8 @@ export default function Home() {
     let lastAnnouncedPhase = "";
 
     const phaseTimes = reducedMotion
-      ? { rotateEnd: 260, contourStart: 180, contourEnd: 620, ballStart: 660, ballEnd: 840, descentStart: 940, descentEnd: 2920 }
-      : { rotateEnd: 1800, contourStart: 950, contourEnd: 2450, ballStart: 2550, ballEnd: 2850, descentStart: 3300, descentEnd: 7600 };
+      ? { rotateEnd: 260, contourStart: 50, contourEnd: 240, ballStart: 660, ballEnd: 840, descentStart: 940, descentEnd: 2920 }
+      : { rotateEnd: 1800, contourStart: 220, contourEnd: 1680, ballStart: 2550, ballEnd: 2850, descentStart: 3300, descentEnd: 7600 };
 
     const onMotionChange = (event: MediaQueryListEvent) => {
       reducedMotion = event.matches;
@@ -375,11 +375,6 @@ export default function Home() {
           0.42, 0.7, 1.02, 1.38, 1.78, 2.22, 2.72, 3.28, 3.92, 4.66, 5.5,
         ];
         rings.forEach((radius, ringIndex) => {
-          const revealStart = (ringIndex / rings.length) * 0.62;
-          const stagger = easeInOutCubic(
-            clamp((contourAlpha - revealStart) / 0.38),
-          );
-          if (stagger <= 0) return;
           context.beginPath();
           for (let index = 0; index <= 100; index += 1) {
             const angle = (index / 100) * Math.PI * 2;
@@ -391,7 +386,7 @@ export default function Home() {
             else context.lineTo(projected.x, projected.y);
           }
           const prominence = 0.25 - ringIndex * 0.009;
-          context.strokeStyle = `rgba(205, 229, 245, ${stagger * prominence})`;
+          context.strokeStyle = `rgba(205, 229, 245, ${contourAlpha * prominence})`;
           context.lineWidth = ringIndex < 3 ? 1.05 : 0.75;
           context.stroke();
         });

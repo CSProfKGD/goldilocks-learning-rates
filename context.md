@@ -25,7 +25,7 @@ The requested starting point was the **Gradient Descent** project, but its sourc
 - One trail outlining that ball's past positions, matching the treatment used in the source Gradient Descent project.
 - No isocurve plane.
 - No extra balls or side-by-side simulations.
-- A small set of subtle contour/isocurve lines dissolves directly onto the surface as the camera reaches the top view. The reveal radiates from the minimum outward, the curves use the same loss function as the bowl, and they naturally clip at the browser viewport.
+- A small set of subtle contour/isocurve lines dissolves directly onto the surface as one coordinated field while the camera rotates and zooms. Every contour shares the same opacity curve; none are delayed or individually staggered. The curves use the same loss function as the bowl and naturally clip at the browser viewport.
 - The opening camera shows the full bowl centered and deliberately zoomed out. The move to the top view combines rotation and zoom using the same slow-in/slow-out easing curve.
 - All three presets use the same surface and the same initial ball position so the motion is directly comparable.
 
@@ -49,7 +49,7 @@ The exact timings should be tuned by eye after implementation. The following is 
 | --- | ---: | --- |
 | Ready | Before play | Show the empty 3D parabola from an elegant three-quarter perspective. Bottom controls are visible. Contours and ball are hidden. |
 | Camera move | 0.0–1.8 s | On play, smoothly rotate and zoom the centered, distant bowl toward a true or near-true top view. Rotation and zoom ease in and out together; there is no hard cut. |
-| Contour reveal | 0.95–2.45 s | As the camera approaches the top view, the restrained contour field dissolves from the minimum outward. |
+| Contour reveal | 0.22–1.68 s | During the camera move, the complete restrained contour field dissolves in together with one shared opacity curve. |
 | Ball entrance | 2.88–3.28 s | One ball appears at the shared initial point with a refined pop: fade plus small scale/vertical settle. |
 | Anticipation | 3.28–3.78 s | Brief pause so the viewer registers the start position and contours. |
 | Descent | 3.78 s onward | Run gradient descent using the selected preset. As the ball moves, reveal a trail through its actual past positions. Camera remains stable and the ball's motion is the focus. |
@@ -85,7 +85,7 @@ The deterministic quadratic uses eigenvalue curvatures `0.56` and `0.23`, 18 upd
 ## Motion language
 
 - Camera: smooth, confident, slow-in/slow-out, with no visible snapping at the end.
-- Contours: softly progressive radial dissolve from the minimum; no harsh toggle.
+- Contours: the complete field dissolves in together during rotation and zoom; no per-ring delay or harsh toggle.
 - Ball entrance: restrained overshoot and settle, lasting only a few hundred milliseconds.
 - Gradient descent: positions should come from the optimization algorithm. Interpolate between algorithm steps only to make the true sequence readable and fluid.
 - Trail: extend it from the ball's sampled position history as descent progresses. Its luminous core, soft halo, and sequential position markers use cyan for Too low, coral for Too large, and green for Just right.
