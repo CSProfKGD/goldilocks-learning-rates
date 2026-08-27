@@ -369,7 +369,7 @@ export default function Home() {
       const surfaceRadius = 3.25 + cameraProgress * cameraProgress * 16.15;
       const visibleHeightRange = 10.5;
       surfaceContext.clearRect(0, 0, width, height);
-      const boundarySteps = 180;
+      const boundarySteps = 360;
       const traceBoundary = (target: CanvasRenderingContext2D) => {
         target.beginPath();
         for (let index = 0; index <= boundarySteps; index += 1) {
@@ -390,6 +390,9 @@ export default function Home() {
 
       const bandBlend = easeInOutCubic(clamp((cameraProgress - 0.18) / 0.34));
       const meshAlpha = 1 - bandBlend;
+      const rimAlpha = bandBlend * (
+        1 - easeInOutCubic(clamp((cameraProgress - 0.56) / 0.22))
+      );
       meshContext.clearRect(0, 0, width, height);
       if (meshAlpha > 0) {
         const uSteps = 64;
@@ -579,14 +582,6 @@ export default function Home() {
       edgeGradient.addColorStop(1, `rgba(0, 0, 0, ${0.12 + 0.05 * (1 - cameraProgress)})`);
       surfaceContext.fillStyle = edgeGradient;
       surfaceContext.fillRect(0, 0, width, height);
-      traceBoundary(surfaceContext);
-      surfaceContext.globalCompositeOperation = "destination-out";
-      surfaceContext.strokeStyle = "rgba(0, 0, 0, 1)";
-      surfaceContext.lineWidth = 14;
-      surfaceContext.lineJoin = "round";
-      surfaceContext.lineCap = "round";
-      surfaceContext.stroke();
-      surfaceContext.globalCompositeOperation = "source-over";
       surfaceContext.restore();
 
       context.save();
@@ -597,7 +592,7 @@ export default function Home() {
       context.restore();
 
       context.save();
-      context.globalAlpha = bandBlend;
+      context.globalAlpha = rimAlpha;
       traceBoundary(context);
       context.strokeStyle = "rgba(154, 205, 237, 0.12)";
       context.lineWidth = 1;
