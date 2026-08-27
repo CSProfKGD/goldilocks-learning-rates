@@ -483,29 +483,6 @@ export default function Home() {
         context.lineWidth = 1;
         context.stroke();
 
-        if (elapsed > phaseTimes.descentEnd) {
-          const outcomeProgress = easeOutCubic(
-            clamp((elapsed - phaseTimes.descentEnd) / 520),
-          );
-          const label = preset.summary.toUpperCase();
-          context.save();
-          context.globalAlpha = outcomeProgress;
-          context.font = "650 11px -apple-system, BlinkMacSystemFont, sans-serif";
-          context.letterSpacing = "1.4px";
-          const textWidth = context.measureText(label).width;
-          const labelX = clamp(projectedBall.x + 18, 18, width - textWidth - 36);
-          const labelY = clamp(projectedBall.y - 18, 28, height - 28);
-          context.beginPath();
-          context.roundRect(labelX - 10, labelY - 14, textWidth + 20, 28, 14);
-          context.fillStyle = "rgba(3, 8, 17, 0.78)";
-          context.fill();
-          context.strokeStyle = `rgba(${accent.r}, ${accent.g}, ${accent.b}, 0.34)`;
-          context.lineWidth = 1;
-          context.stroke();
-          context.fillStyle = "rgba(244, 248, 251, 0.9)";
-          context.fillText(label, labelX, labelY + 3.5);
-          context.restore();
-        }
       }
 
       let phase = "Ready to descend";

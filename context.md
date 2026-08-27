@@ -53,7 +53,7 @@ The exact timings should be tuned by eye after implementation. The following is 
 | Ball entrance | 2.88–3.28 s | One ball appears at the shared initial point with a refined pop: fade plus small scale/vertical settle. |
 | Anticipation | 3.28–3.78 s | Brief pause so the viewer registers the start position and contours. |
 | Descent | 3.78 s onward | Run gradient descent using the selected preset. As the ball moves, reveal a trail through its actual past positions. Camera remains stable and the ball's motion is the focus. |
-| Resolve | End | Hold the final state long enough to read the outcome. Play becomes Reset; preset choices remain available. |
+| Resolve | End | Hold the final ball and trail without an outcome label. Play becomes Reset; preset choices remain available. |
 
 The contour reveal may overlap the latter part of the camera move, but it should not begin so early that the opening perspective becomes visually busy.
 
@@ -89,7 +89,7 @@ The deterministic quadratic uses eigenvalue curvatures `0.56` and `0.23`, 18 upd
 - Ball entrance: restrained overshoot and settle, lasting only a few hundred milliseconds.
 - Gradient descent: positions should come from the optimization algorithm. Interpolate between algorithm steps only to make the true sequence readable and fluid.
 - Trail: extend it from the ball's sampled position history as descent progresses. Its luminous core, soft halo, and sequential position markers use cyan for Too low, coral for Too large, and green for Just right.
-- Ending: gentle hold, with an optional subtle emphasis of the outcome. Avoid celebratory effects.
+- Ending: gently hold the final ball and trail. Do not add a label, badge, or celebratory effect around the ball.
 
 ## Suggested state model
 
@@ -114,7 +114,7 @@ Some visual phases may overlap on the timeline even if the logical state has one
 - Dark navy-to-indigo surface, subdued contour field, and semantic path colors.
 - Near-orthographic top view after an eased 1.8-second rotation-and-zoom move.
 - No minimum label; only a small luminous center marker.
-- A concise outcome word appears after playback.
+- No outcome label appears around the ball after playback.
 
 ## Acceptance criteria
 
