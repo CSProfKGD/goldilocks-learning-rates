@@ -5,7 +5,7 @@
 Create an interactive visual explanation of gradient descent that makes three learning-rate behaviors immediately understandable:
 
 - **Too low:** correct direction, but frustratingly slow progress.
-- **Too large:** repeated overshooting, oscillation, and possible divergence.
+- **Too large:** repeated overshooting followed by visible divergence and rising loss.
 - **Just right:** fast, controlled convergence to the minimum.
 
 The experience should feel like a short, premium presentation rather than a simulation dashboard. The reference quality bar is an Apple Keynote animation: elegant staging, precise timing, smooth camera work, and minimal interface chrome.
@@ -64,7 +64,7 @@ The contour reveal may overlap the latter part of the camera move, but it should
 
 ## Learning-rate behaviors
 
-The deterministic quadratic uses eigenvalue curvatures `0.56` and `0.23`, 18 updates, and one shared start point. The fixed learning rates are `0.065` (Too low), `3.5` (Too large), and `1.2` (Just right).
+The deterministic quadratic uses eigenvalue curvatures `0.56` and `0.23`, 18 updates, and one shared start point. The fixed learning rates are `0.065` (Too low), `3.6` (Too large), and `1.2` (Just right). The Too large preset is deliberately just beyond the dominant-axis stability threshold (`2 / 0.56 ≈ 3.571`), so that component alternates sign and grows on every update while remaining inside the composed camera frame.
 
 ### Too low
 

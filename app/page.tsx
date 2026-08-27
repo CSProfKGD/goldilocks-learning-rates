@@ -19,7 +19,7 @@ const PRESETS: Record<
   high: {
     label: "Too large",
     eyebrow: "Unstable",
-    rate: 3.5,
+    rate: 3.6,
     summary: "Unstable",
     color: "#ff8a65",
   },
