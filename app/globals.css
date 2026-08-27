@@ -404,8 +404,7 @@ h1 {
   .control-dock {
     bottom: 18px;
     display: block;
-    width: calc(100% - 24px);
-    max-width: 720px;
+    width: min(480px, calc(100% - 24px));
     min-height: 0;
     padding: 6px;
     border-radius: 17px;
