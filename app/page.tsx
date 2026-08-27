@@ -130,6 +130,9 @@ function lerpPoint(a: Point, b: Point, amount: number): Point {
 
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const lossGuideRef = useRef<SVGPathElement>(null);
+  const lossPathRef = useRef<SVGPathElement>(null);
+  const lossMarkerRef = useRef<SVGCircleElement>(null);
   const animationRef = useRef<number | null>(null);
   const selectedRef = useRef<PresetId>("right");
   const runRef = useRef(0);
@@ -265,6 +268,19 @@ export default function Home() {
     const preset = PRESETS[selectedRef.current];
     const path = makePath(preset.rate);
     const accent = hexToRgb(preset.color);
+    const lossValues = path.map((point) => loss(point.x, point.y));
+    const maxLoss = Math.max(...lossValues, 0.001);
+    const chartPoint = (index: number, value = lossValues[index]) => ({
+      x: 8 + (index / (lossValues.length - 1)) * 164,
+      y: 7 + (1 - value / maxLoss) * 52,
+    });
+    const fullLossPath = lossValues
+      .map((value, index) => {
+        const point = chartPoint(index, value);
+        return `${index === 0 ? "M" : "L"}${point.x.toFixed(2)} ${point.y.toFixed(2)}`;
+      })
+      .join(" ");
+    lossGuideRef.current?.setAttribute("d", fullLossPath);
 
     const draw = (now: number) => {
       const elapsed = playing || resetting ? now - startTime : -1;
@@ -306,6 +322,28 @@ export default function Home() {
             ),
           )
           : 0;
+      const chartProgress = resetting ? 1 - resetProgress : descentProgress;
+      const chartFloat = chartProgress * (lossValues.length - 1);
+      const chartIndex = Math.min(Math.floor(chartFloat), lossValues.length - 2);
+      const chartAmount = chartFloat - chartIndex;
+      const chartParts: string[] = [];
+      for (let index = 0; index <= chartIndex; index += 1) {
+        const point = chartPoint(index);
+        chartParts.push(`${index === 0 ? "M" : "L"}${point.x.toFixed(2)} ${point.y.toFixed(2)}`);
+      }
+      if (chartProgress > 0) {
+        const interpolatedLoss =
+          lossValues[chartIndex] +
+          (lossValues[chartIndex + 1] - lossValues[chartIndex]) * chartAmount;
+        const marker = chartPoint(chartIndex + chartAmount, interpolatedLoss);
+        chartParts.push(`L${marker.x.toFixed(2)} ${marker.y.toFixed(2)}`);
+        lossMarkerRef.current?.setAttribute("cx", marker.x.toFixed(2));
+        lossMarkerRef.current?.setAttribute("cy", marker.y.toFixed(2));
+      }
+      lossPathRef.current?.setAttribute("d", chartProgress > 0 ? chartParts.join(" ") : "");
+      if (lossMarkerRef.current) {
+        lossMarkerRef.current.style.opacity = chartProgress > 0 ? "1" : "0";
+      }
       context.clearRect(0, 0, width, height);
 
       const baseScale = Math.min(width / 10.8, height / 7.8);
@@ -759,6 +797,22 @@ export default function Home() {
       </section>
 
       <span className="sr-only" aria-live="polite">{phaseLabel}</span>
+
+      <aside
+        className="loss-chart"
+        aria-label={`Loss versus iteration for the ${PRESETS[selected].label.toLowerCase()} learning rate`}
+        style={{ color: PRESETS[selected].color }}
+      >
+        <p className="loss-chart-heading">Loss <span>vs iteration</span></p>
+        <svg viewBox="0 0 180 70" role="img" aria-hidden="true">
+          <path className="loss-chart-axis" d="M8 7 V59 H172" />
+          <path ref={lossGuideRef} className="loss-chart-guide" />
+          <path ref={lossPathRef} className="loss-chart-path" />
+          <circle ref={lossMarkerRef} className="loss-chart-marker" r="2.5" />
+          <text className="loss-chart-y-label" x="5" y="8">LOSS</text>
+          <text className="loss-chart-x-label" x="172" y="68">ITERATION</text>
+        </svg>
+      </aside>
 
       <section className="control-dock" aria-label="Animation controls">
         <div className="preset-group" role="radiogroup" aria-label="Choose a learning rate">

@@ -119,6 +119,86 @@ h1 {
   outline: none;
 }
 
+.loss-chart {
+  position: fixed;
+  z-index: 11;
+  left: calc(50% - 181px);
+  bottom: 96px;
+  width: 158px;
+  pointer-events: none;
+}
+
+.loss-chart-heading {
+  margin: 0 0 5px 7px;
+  color: rgba(240, 244, 248, 0.74);
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.loss-chart-heading span {
+  margin-left: 5px;
+  color: rgba(197, 204, 214, 0.42);
+  font-weight: 520;
+  letter-spacing: 0.05em;
+  text-transform: lowercase;
+}
+
+.loss-chart svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+
+.loss-chart-axis {
+  fill: none;
+  stroke: rgba(205, 214, 224, 0.18);
+  stroke-width: 0.8;
+}
+
+.loss-chart-guide,
+.loss-chart-path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.loss-chart-guide {
+  stroke: rgba(210, 218, 228, 0.14);
+  stroke-width: 1.2;
+}
+
+.loss-chart-path {
+  stroke: currentColor;
+  stroke-width: 1.8;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+.loss-chart-marker {
+  fill: #f8fbff;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  opacity: 0;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+.loss-chart text {
+  fill: rgba(194, 203, 214, 0.34);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 4.8px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.loss-chart-y-label {
+  text-anchor: start;
+}
+
+.loss-chart-x-label {
+  text-anchor: end;
+}
+
 .control-dock {
   position: fixed;
   z-index: 12;
@@ -319,6 +399,12 @@ h1 {
 }
 
 @media (max-width: 900px) {
+  .loss-chart {
+    left: 18px;
+    bottom: 144px;
+    width: 150px;
+  }
+
   .control-dock {
     bottom: 18px;
     display: block;

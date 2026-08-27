@@ -41,6 +41,8 @@ The bottom control area contains three mutually exclusive learning-rate choices:
 
 Each option includes its numeric learning rate. It also provides a clear play control that becomes `Reset` after a run; Reset returns to the ready frame and waits for a new Play. The selected option is unmistakable but visually quiet, using semantic color and type rather than a boxed selection. Controls live in a tightly fitted translucent glass panel with minimal unused space and remain anchored and stable while the scene animates. At viewport widths of 900px and below, the three presets remain in one horizontal row while Play/Reset becomes a full-width row beneath them. Its height is 52px for compact tablet layouts and tightens to a 44px tap target at 720px and below.
 
+A compact loss-versus-iteration chart floats immediately above the left edge of the control dock. Its faint guide is the selected preset's actual deterministic loss history, while an accent trace and marker reveal in exact synchronization with the ball's current gradient-descent iteration. The chart remains intentionally unboxed and subordinate to the main surface.
+
 Initial default: **Just right**.
 
 ## Storyboard
