@@ -350,17 +350,14 @@ export default function Home() {
       surfaceContext.clip();
       surfaceContext.fillStyle = surfaceColor(1, 0.86);
       surfaceContext.fillRect(0, 0, width, height);
-      const colorBandCount = 84;
-      const colorBandSteps = 112;
+      const colorRadius = Math.min(surfaceRadius, 6.2);
+      const colorBandCount = 360;
+      const colorBandSteps = 96;
       for (let band = colorBandCount - 1; band >= 0; band -= 1) {
-        const radius = surfaceRadius * ((band + 1) / colorBandCount);
+        const radius = colorRadius * ((band + 1) / colorBandCount);
         const level = 0.5 * radius * radius;
         const tone = Math.pow(clamp(level / visibleHeightRange), 0.72);
         const bandPoints: ReturnType<typeof project>[] = [];
-        let minBandX = Number.POSITIVE_INFINITY;
-        let minBandY = Number.POSITIVE_INFINITY;
-        let maxBandX = Number.NEGATIVE_INFINITY;
-        let maxBandY = Number.NEGATIVE_INFINITY;
         for (let index = 0; index <= colorBandSteps; index += 1) {
           const angle = (index / colorBandSteps) * Math.PI * 2;
           const u = (radius / Math.sqrt(LAMBDA_U)) * Math.cos(angle);
@@ -368,29 +365,28 @@ export default function Home() {
           const point = eigenToWorld(u, v);
           const projected = project(point.x, point.y, level * SURFACE_HEIGHT);
           bandPoints.push(projected);
-          minBandX = Math.min(minBandX, projected.x);
-          minBandY = Math.min(minBandY, projected.y);
-          maxBandX = Math.max(maxBandX, projected.x);
-          maxBandY = Math.max(maxBandY, projected.y);
         }
-        const light = surfaceContext.createLinearGradient(
-          minBandX,
-          minBandY,
-          maxBandX,
-          maxBandY,
-        );
-        light.addColorStop(0, surfaceColor(tone, 1.05));
-        light.addColorStop(0.52, surfaceColor(tone, 0.98));
-        light.addColorStop(1, surfaceColor(tone, 0.84));
         surfaceContext.beginPath();
         surfaceContext.moveTo(bandPoints[0].x, bandPoints[0].y);
         for (let index = 1; index < bandPoints.length; index += 1) {
           surfaceContext.lineTo(bandPoints[index].x, bandPoints[index].y);
         }
         surfaceContext.closePath();
-        surfaceContext.fillStyle = light;
+        surfaceContext.fillStyle = surfaceColor(tone);
         surfaceContext.fill();
       }
+
+      const directionalLight = surfaceContext.createLinearGradient(
+        width * 0.18,
+        height * 0.12,
+        width * 0.9,
+        height * 0.88,
+      );
+      directionalLight.addColorStop(0, "rgba(255, 255, 255, 0.075)");
+      directionalLight.addColorStop(0.48, "rgba(255, 255, 255, 0)");
+      directionalLight.addColorStop(1, "rgba(0, 0, 0, 0.14)");
+      surfaceContext.fillStyle = directionalLight;
+      surfaceContext.fillRect(0, 0, width, height);
 
       const edgeGradient = surfaceContext.createRadialGradient(
         originX,
