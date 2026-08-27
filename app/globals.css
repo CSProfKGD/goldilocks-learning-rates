@@ -463,7 +463,7 @@ h1 {
 
   h1 {
     max-width: 520px;
-    font-size: clamp(38px, 10.5vw, 52px);
+    font-size: clamp(27px, 8.45vw, 44px);
     line-height: 0.98;
   }
 

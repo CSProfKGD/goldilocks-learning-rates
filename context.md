@@ -14,6 +14,8 @@ Final working title: **The Goldilocks Principle of Learning Rates**.
 
 The eyebrow, title, and subtitle are treated as one upper-left presentation block. Its top edge sits at roughly 7% of the desktop viewport, preserving the established left margin while leaving the lower-left intentionally open. The title is locked to two lines: `The Goldilocks Principle` / `of Learning Rates`.
 
+On mobile, the title retains those exact two lines and scales down fluidly so the longer first line always fits within the viewport gutters without clipping.
+
 ## Source-project status
 
 The requested starting point was the **Gradient Descent** project, but its source was not available in the workspace. The current implementation was therefore built as a deterministic canvas presentation rather than inventing compatibility with an unseen codebase. It retains the requested single-ball, actual-position trail behavior.
