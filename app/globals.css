@@ -318,6 +318,36 @@ h1 {
   }
 }
 
+@media (max-width: 900px) {
+  .control-dock {
+    bottom: 18px;
+    display: block;
+    width: calc(100% - 24px);
+    max-width: 720px;
+    min-height: 0;
+    padding: 6px;
+    border-radius: 17px;
+  }
+
+  .preset-group {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    height: 52px;
+  }
+
+  .preset {
+    gap: 6px;
+    padding: 5px 6px;
+    text-align: center;
+  }
+
+  .play-button {
+    width: 100%;
+    height: 52px;
+    margin-top: 4px;
+  }
+}
+
 @media (max-width: 720px) {
   .experience::before {
     background: linear-gradient(
@@ -358,24 +388,8 @@ h1 {
     line-height: 1.55;
   }
 
-  .control-dock {
-    bottom: 18px;
-    display: block;
-    width: calc(100% - 24px);
-    min-height: 0;
-    padding: 6px;
-    border-radius: 17px;
-  }
-
-  .preset-group {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    height: 52px;
-  }
-
   .preset {
-    gap: 6px;
     padding: 5px 3px;
-    text-align: center;
   }
 
   .preset-copy strong {
@@ -386,10 +400,6 @@ h1 {
     font-size: 7px;
   }
 
-  .play-button {
-    width: 100%;
-    height: 40px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -20,9 +20,9 @@ The requested starting point was the **Gradient Descent** project, but its sourc
 
 ## Core scene
 
-- One smooth 3D parabola/bowl surface representing the loss landscape. It extends beyond the scene so the browser viewport—not an artificial oval or rectangular model boundary—is the visible clipping boundary.
+- One smooth 3D parabola/bowl surface representing the loss landscape. The opening uses a compact rectangular analytical domain so all four rising corners remain visible and the surface reads as a complete paraboloid rather than a cropped crown. That domain expands during the camera move until it extends beyond the scene, making the browser viewport the visible clipping boundary in the top view.
 - The experience uses a pure black background with no top header, logo strip, status strip, or header divider.
-- The surface uses a height-normalized cool gradient: midnight indigo in the valley, royal blue through the lower slopes, restrained cyan/teal at upper-middle elevations, and lavender-blue at the highest peaks. Smooth filled elevation bands are generated from the same analytical loss ellipses and projected surface heights as the contours, then clipped through a high-resolution analytical silhouette. A restrained upper-left luminance gradient adds directional depth without facets. The offscreen surface buffer renders at the full device-pixel ratio and composites without blur, preserving a crisp silhouette and smooth interior color through the full camera move.
+- The surface uses a height-normalized cool gradient: midnight indigo in the valley, royal blue through the lower slopes, restrained cyan/teal at upper-middle elevations, and lavender-blue at the highest peaks. Smooth filled elevation bands are generated from the same analytical loss ellipses and projected surface heights as the contours, then clipped through a high-resolution rectangular domain on the analytical surface. The opening domain is compact, centered, and paired with a shallower presentation pitch so all four rising corners frame a recognizable paraboloid rather than a cropped crown; the domain expands beyond the viewport by the top view. A restrained upper-left luminance gradient adds directional depth without facets. The offscreen surface buffer renders at the full device-pixel ratio and composites without blur, preserving a crisp silhouette and smooth interior color through the full camera move.
 - One ball representing the current parameter state.
 - One trail outlining that ball's past positions, matching the treatment used in the source Gradient Descent project.
 - No isocurve plane.
@@ -39,7 +39,7 @@ The bottom control area contains three mutually exclusive learning-rate choices:
 2. `Too large`
 3. `Just right`
 
-Each option includes its numeric learning rate. It also provides a clear play control that becomes `Reset` after a run; Reset returns to the ready frame and waits for a new Play. The selected option is unmistakable but visually quiet, using semantic color and type rather than a boxed selection. Controls live in a tightly fitted translucent glass panel with minimal unused space and remain anchored and stable while the scene animates.
+Each option includes its numeric learning rate. It also provides a clear play control that becomes `Reset` after a run; Reset returns to the ready frame and waits for a new Play. The selected option is unmistakable but visually quiet, using semantic color and type rather than a boxed selection. Controls live in a tightly fitted translucent glass panel with minimal unused space and remain anchored and stable while the scene animates. At viewport widths of 900px and below, the three presets remain in one horizontal row while Play/Reset becomes a large 52px-high full-width row beneath them.
 
 Initial default: **Just right**.
 
@@ -55,7 +55,7 @@ The exact timings should be tuned by eye after implementation. The following is 
 | Ball entrance | 2.88–3.28 s | One ball appears at the shared initial point with a refined pop: fade plus small scale/vertical settle. |
 | Anticipation | 3.28–3.78 s | Brief pause so the viewer registers the start position and contours. |
 | Descent | 3.78 s onward | Run gradient descent using the selected preset. As the ball moves, reveal a trail through its actual past positions. Camera remains stable and the ball's motion is the focus. |
-| Resolve | End | Hold the final ball and trail without an outcome label. Play becomes Reset, and all three preset choices are enabled. Choosing a new preset resets to the ready scene and waits for Play. |
+| Resolve | End | Hold the final ball and trail without an outcome label. Play becomes Reset, and the three preset choices remain locked. Reset is the only available action until its reverse transition finishes; then the presets and Play become available again. |
 
 The contour reveal may overlap the latter part of the camera move, but it should not begin so early that the opening perspective becomes visually busy.
 
@@ -116,6 +116,7 @@ Some visual phases may overlap on the timeline even if the logical state has one
 - Deterministic rotated anisotropic quadratic and fixed presets listed above.
 - Dark navy-to-indigo surface, subdued contour field, and semantic path colors.
 - Near-orthographic top view after an eased 1.8-second rotation-and-zoom move.
+- Constant surface luminance through play and reset; camera motion introduces no opacity dip or flash.
 - No minimum label; only a small luminous center marker.
 - No outcome label appears around the ball after playback.
 
@@ -126,5 +127,5 @@ Some visual phases may overlap on the timeline even if the logical state has one
 - The visualization never displays an isocurve plane.
 - Each preset produces its intended and visibly distinct behavior from the same start point.
 - The ball leaves a readable trail through its actual past positions, consistent with the source project.
-- Reset plays a coordinated reverse transition: the camera eases back through its zoom and rotation while the ball, trail, and complete contour field dissolve out together. After the transition, the control returns to Play and playback waits.
+- Reset plays a coordinated reverse transition: the camera eases back through its zoom and rotation while the ball, trail, and complete contour field dissolve out together. All three overlays remain clipped to the live projected surface boundary throughout the reverse move. After the transition, the control returns to Play and playback waits.
 - The result feels presentation-grade, not like a raw technical demo.

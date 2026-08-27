@@ -160,7 +160,7 @@ export default function Home() {
   }, []);
 
   const choosePreset = (preset: PresetId) => {
-    if ((playing && !complete) || resetting) return;
+    if (playing || complete || resetting) return;
     runRef.current += 1;
     setPlaying(false);
     setResetting(false);
@@ -293,12 +293,6 @@ export default function Home() {
             ),
           )
           : 0;
-      const landscapeAlpha = resetting || !playing
-        ? 1
-        : elapsed < 260
-          ? 1 - easeInOutCubic(clamp(elapsed / 260)) * 0.48
-          : 0.52 + easeInOutCubic(clamp((elapsed - 260) / 640)) * 0.48;
-
       context.clearRect(0, 0, width, height);
 
       const baseScale = Math.min(width / 10.8, height / 7.8);
@@ -307,7 +301,7 @@ export default function Home() {
         width < 900 ? 0.5 : 0.54 + cameraProgress * 0.14
       );
       const originY = height * (0.56 - cameraProgress * 0.065);
-      const pitch = 0.68 * (1 - cameraProgress);
+      const pitch = 0.48 * (1 - cameraProgress);
       const yaw = -0.62 + cameraProgress * 0.19;
 
       const project = (x: number, y: number, z: number) => {
@@ -324,47 +318,42 @@ export default function Home() {
         };
       };
 
-      const xExtent = 5.7 + cameraProgress * 10.3;
-      const yFrontExtent = 4.8 + cameraProgress * 9.2;
-      const yBackExtent = 4.8 + cameraProgress * 11.2;
-      const xMin = -xExtent;
-      const xMax = xExtent;
-      const yMin = -yFrontExtent;
-      const yMax = yBackExtent;
+      const surfaceRadius = 4.8 + cameraProgress * 14.6;
+      const xExtent = 4.5 + cameraProgress * 11.5;
+      const yExtent = 4 + cameraProgress * 10;
       const visibleHeightRange = 0.5 * 4.8 * 4.8;
       surfaceContext.clearRect(0, 0, width, height);
       surfaceContext.save();
-      surfaceContext.beginPath();
-      const boundarySteps = 120;
-      const traceBoundary = (x: number, y: number, move = false) => {
-        const point = project(x, y, loss(x, y) * SURFACE_HEIGHT);
-        if (move) surfaceContext.moveTo(point.x, point.y);
-        else surfaceContext.lineTo(point.x, point.y);
+      const boundarySteps = 180;
+      const traceBoundary = (target: CanvasRenderingContext2D) => {
+        target.beginPath();
+        const traceEdgePoint = (x: number, y: number, move = false) => {
+          const projected = project(x, y, loss(x, y) * SURFACE_HEIGHT);
+          if (move) target.moveTo(projected.x, projected.y);
+          else target.lineTo(projected.x, projected.y);
+        };
+        for (let index = 0; index <= boundarySteps; index += 1) {
+          traceEdgePoint(-xExtent + (index / boundarySteps) * xExtent * 2, -yExtent, index === 0);
+        }
+        for (let index = 1; index <= boundarySteps; index += 1) {
+          traceEdgePoint(xExtent, -yExtent + (index / boundarySteps) * yExtent * 2);
+        }
+        for (let index = 1; index <= boundarySteps; index += 1) {
+          traceEdgePoint(xExtent - (index / boundarySteps) * xExtent * 2, yExtent);
+        }
+        for (let index = 1; index <= boundarySteps; index += 1) {
+          traceEdgePoint(-xExtent, yExtent - (index / boundarySteps) * yExtent * 2);
+        }
+        target.closePath();
       };
-      for (let index = 0; index <= boundarySteps; index += 1) {
-        traceBoundary(
-          xMin + (index / boundarySteps) * (xMax - xMin),
-          yMin,
-          index === 0,
-        );
-      }
-      for (let index = 1; index <= boundarySteps; index += 1) {
-        traceBoundary(xMax, yMin + (index / boundarySteps) * (yMax - yMin));
-      }
-      for (let index = 1; index <= boundarySteps; index += 1) {
-        traceBoundary(xMax - (index / boundarySteps) * (xMax - xMin), yMax);
-      }
-      for (let index = 1; index <= boundarySteps; index += 1) {
-        traceBoundary(xMin, yMax - (index / boundarySteps) * (yMax - yMin));
-      }
-      surfaceContext.closePath();
+      traceBoundary(surfaceContext);
       surfaceContext.clip();
       surfaceContext.fillStyle = surfaceColor(1, 0.86);
       surfaceContext.fillRect(0, 0, width, height);
       const colorBandCount = 84;
       const colorBandSteps = 112;
       for (let band = colorBandCount - 1; band >= 0; band -= 1) {
-        const radius = 4.8 * ((band + 1) / colorBandCount);
+        const radius = surfaceRadius * ((band + 1) / colorBandCount);
         const level = 0.5 * radius * radius;
         const tone = Math.pow(clamp(level / visibleHeightRange), 0.72);
         const bandPoints: ReturnType<typeof project>[] = [];
@@ -415,24 +404,7 @@ export default function Home() {
       edgeGradient.addColorStop(1, `rgba(0, 0, 0, ${0.2 + 0.08 * (1 - cameraProgress)})`);
       surfaceContext.fillStyle = edgeGradient;
       surfaceContext.fillRect(0, 0, width, height);
-      surfaceContext.beginPath();
-      for (let index = 0; index <= boundarySteps; index += 1) {
-        traceBoundary(
-          xMin + (index / boundarySteps) * (xMax - xMin),
-          yMin,
-          index === 0,
-        );
-      }
-      for (let index = 1; index <= boundarySteps; index += 1) {
-        traceBoundary(xMax, yMin + (index / boundarySteps) * (yMax - yMin));
-      }
-      for (let index = 1; index <= boundarySteps; index += 1) {
-        traceBoundary(xMax - (index / boundarySteps) * (xMax - xMin), yMax);
-      }
-      for (let index = 1; index <= boundarySteps; index += 1) {
-        traceBoundary(xMin, yMax - (index / boundarySteps) * (yMax - yMin));
-      }
-      surfaceContext.closePath();
+      traceBoundary(surfaceContext);
       surfaceContext.globalCompositeOperation = "destination-out";
       surfaceContext.strokeStyle = "rgba(0, 0, 0, 1)";
       surfaceContext.lineWidth = 14;
@@ -443,11 +415,15 @@ export default function Home() {
       surfaceContext.restore();
 
       context.save();
-      context.globalAlpha = landscapeAlpha * 0.86;
+      context.globalAlpha = 0.86;
       context.imageSmoothingEnabled = true;
       context.imageSmoothingQuality = "high";
       context.drawImage(surfaceCanvas, 0, 0, width, height);
       context.restore();
+
+      context.save();
+      traceBoundary(context);
+      context.clip();
 
       if (contourAlpha > 0) {
         context.save();
@@ -567,6 +543,8 @@ export default function Home() {
         context.restore();
       }
 
+      context.restore();
+
       let phase = "Ready to descend";
       if (resetting) {
         phase = "Returning to the opening view";
@@ -638,7 +616,7 @@ export default function Home() {
               role="radio"
               aria-checked={selected === id}
               className={`preset preset-${id} ${selected === id ? "selected" : ""}`}
-              disabled={(playing && !complete) || resetting}
+              disabled={playing || complete || resetting}
               onClick={() => choosePreset(id)}
             >
               <span className="preset-indicator" />
