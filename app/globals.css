@@ -150,42 +150,36 @@ h1 {
 
 .loss-chart-axis {
   fill: none;
-  stroke: rgba(205, 214, 224, 0.18);
-  stroke-width: 0.8;
+  stroke: rgba(222, 230, 239, 0.42);
+  stroke-width: 1.05;
 }
 
-.loss-chart-guide,
 .loss-chart-path {
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.loss-chart-guide {
-  stroke: rgba(210, 218, 228, 0.14);
-  stroke-width: 1.2;
-}
-
 .loss-chart-path {
   stroke: currentColor;
-  stroke-width: 1.8;
-  filter: drop-shadow(0 0 4px currentColor);
+  stroke-width: 2.2;
+  filter: drop-shadow(0 0 5px currentColor);
 }
 
 .loss-chart-marker {
   fill: #f8fbff;
   stroke: currentColor;
-  stroke-width: 1.5;
+  stroke-width: 1.8;
   opacity: 0;
-  filter: drop-shadow(0 0 4px currentColor);
+  filter: drop-shadow(0 0 5px currentColor);
 }
 
 .loss-chart text {
-  fill: rgba(194, 203, 214, 0.34);
+  fill: rgba(226, 233, 241, 0.64);
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 4.8px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-size: 5.6px;
+  font-weight: 650;
+  letter-spacing: 0.075em;
 }
 
 .loss-chart-y-label {

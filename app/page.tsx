@@ -130,7 +130,6 @@ function lerpPoint(a: Point, b: Point, amount: number): Point {
 
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const lossGuideRef = useRef<SVGPathElement>(null);
   const lossPathRef = useRef<SVGPathElement>(null);
   const lossMarkerRef = useRef<SVGCircleElement>(null);
   const animationRef = useRef<number | null>(null);
@@ -272,15 +271,8 @@ export default function Home() {
     const maxLoss = Math.max(...lossValues, 0.001);
     const chartPoint = (index: number, value = lossValues[index]) => ({
       x: 8 + (index / (lossValues.length - 1)) * 164,
-      y: 7 + (1 - value / maxLoss) * 52,
+      y: 11 + (1 - value / maxLoss) * 48,
     });
-    const fullLossPath = lossValues
-      .map((value, index) => {
-        const point = chartPoint(index, value);
-        return `${index === 0 ? "M" : "L"}${point.x.toFixed(2)} ${point.y.toFixed(2)}`;
-      })
-      .join(" ");
-    lossGuideRef.current?.setAttribute("d", fullLossPath);
 
     const draw = (now: number) => {
       const elapsed = playing || resetting ? now - startTime : -1;
@@ -805,11 +797,10 @@ export default function Home() {
         style={{ color: PRESETS[selected].color }}
       >
         <svg viewBox="0 0 180 70" role="img" aria-hidden="true">
-          <path className="loss-chart-axis" d="M8 7 V59 H172" />
-          <path ref={lossGuideRef} className="loss-chart-guide" />
+          <path className="loss-chart-axis" d="M8 11 V59 H172" />
           <path ref={lossPathRef} className="loss-chart-path" />
           <circle ref={lossMarkerRef} className="loss-chart-marker" r="2.5" />
-          <text className="loss-chart-y-label" x="5" y="8">LOSS</text>
+          <text className="loss-chart-y-label" x="8" y="6">LOSS</text>
           <text className="loss-chart-x-label" x="172" y="68">ITERATION</text>
         </svg>
       </aside>
