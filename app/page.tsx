@@ -45,8 +45,9 @@ function easeInOutCubic(value: number) {
     : 1 - Math.pow(-2 * value + 2, 3) / 2;
 }
 
-function easeOutCubic(value: number) {
-  return 1 - Math.pow(1 - value, 3);
+function easeOutBack(value: number) {
+  const overshoot = 1.12;
+  return 1 + (overshoot + 1) * Math.pow(value - 1, 3) + overshoot * Math.pow(value - 1, 2);
 }
 
 function clamp(value: number, min = 0, max = 1) {
@@ -133,6 +134,7 @@ export default function Home() {
   const [selected, setSelected] = useState<PresetId>("right");
   const [playing, setPlaying] = useState(false);
   const [complete, setComplete] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [runKey, setRunKey] = useState(0);
   const [phaseLabel, setPhaseLabel] = useState("Ready to descend");
 
@@ -142,6 +144,7 @@ export default function Home() {
 
   const play = useCallback(() => {
     runRef.current += 1;
+    setResetting(false);
     setComplete(false);
     setPlaying(true);
     setPhaseLabel("Finding a better view");
@@ -151,15 +154,16 @@ export default function Home() {
   const reset = useCallback(() => {
     runRef.current += 1;
     setPlaying(false);
-    setComplete(false);
-    setPhaseLabel("Ready to descend");
+    setResetting(true);
+    setPhaseLabel("Returning to the opening view");
     setRunKey(runRef.current);
   }, []);
 
   const choosePreset = (preset: PresetId) => {
-    if (playing && !complete) return;
+    if ((playing && !complete) || resetting) return;
     runRef.current += 1;
     setPlaying(false);
+    setResetting(false);
     setSelected(preset);
     setComplete(false);
     setPhaseLabel("Ready to descend");
@@ -182,7 +186,10 @@ export default function Home() {
     let dpr = 1;
     let startTime = performance.now();
     let didComplete = false;
+    let didReset = false;
     let lastAnnouncedPhase = "";
+    let resizeTimer: number | null = null;
+    let drawLatest: ((now: number) => void) | null = null;
 
     const phaseTimes = reducedMotion
       ? { rotateEnd: 260, contourStart: 50, contourEnd: 240, ballStart: 660, ballEnd: 840, descentStart: 940, descentEnd: 2920 }
@@ -193,19 +200,28 @@ export default function Home() {
     };
     media.addEventListener("change", onMotionChange);
 
-    const resize = () => {
+    const applyResize = () => {
       const rect = canvas.getBoundingClientRect();
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      width = rect.width;
-      height = rect.height;
-      const pixelWidth = Math.round(width * dpr);
-      const pixelHeight = Math.round(height * dpr);
+      const nextDpr = Math.min(window.devicePixelRatio || 1, 2);
+      const nextWidth = rect.width;
+      const nextHeight = rect.height;
+      const pixelWidth = Math.round(nextWidth * nextDpr);
+      const pixelHeight = Math.round(nextHeight * nextDpr);
+      const changed =
+        canvas.width !== pixelWidth ||
+        canvas.height !== pixelHeight ||
+        width !== nextWidth ||
+        height !== nextHeight ||
+        dpr !== nextDpr;
+      width = nextWidth;
+      height = nextHeight;
+      dpr = nextDpr;
       if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
         canvas.width = pixelWidth;
         canvas.height = pixelHeight;
       }
-      const surfaceWidth = Math.max(1, Math.round(width));
-      const surfaceHeight = Math.max(1, Math.round(height));
+      const surfaceWidth = Math.max(1, pixelWidth);
+      const surfaceHeight = Math.max(1, pixelHeight);
       if (
         surfaceCanvas.width !== surfaceWidth ||
         surfaceCanvas.height !== surfaceHeight
@@ -214,44 +230,70 @@ export default function Home() {
         surfaceCanvas.height = surfaceHeight;
       }
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
+      surfaceContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (changed && drawLatest) {
+        if (animationRef.current) cancelAnimationFrame(animationRef.current);
+        drawLatest(performance.now());
+      }
+    };
+
+    const resize = () => {
+      if (resizeTimer !== null) window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        resizeTimer = null;
+        applyResize();
+      }, 110);
     };
 
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
-    resize();
+    applyResize();
 
     const preset = PRESETS[selectedRef.current];
     const path = makePath(preset.rate);
     const accent = hexToRgb(preset.color);
 
     const draw = (now: number) => {
-      const elapsed = playing ? now - startTime : -1;
-      const cameraProgress = playing
-        ? easeInOutCubic(clamp(elapsed / phaseTimes.rotateEnd))
+      const elapsed = playing || resetting ? now - startTime : -1;
+      const resetDuration = reducedMotion ? 320 : 1800;
+      const resetProgress = resetting
+        ? easeInOutCubic(clamp(elapsed / resetDuration))
         : 0;
-      const contourAlpha = playing
-        ? easeInOutCubic(
+      const cameraProgress = resetting
+        ? 1 - resetProgress
+        : playing
+          ? easeInOutCubic(clamp(elapsed / phaseTimes.rotateEnd))
+          : 0;
+      const contourAlpha = resetting
+        ? 1 - resetProgress
+        : playing
+          ? easeInOutCubic(
             clamp(
               (elapsed - phaseTimes.contourStart) /
                 (phaseTimes.contourEnd - phaseTimes.contourStart),
             ),
           )
-        : 0;
-      const ballProgress = playing
-        ? clamp(
+          : 0;
+      const ballProgress = resetting
+        ? 1
+        : playing
+          ? clamp(
             (elapsed - phaseTimes.ballStart) /
               (phaseTimes.ballEnd - phaseTimes.ballStart),
           )
-        : 0;
-      const descentProgress = playing
-        ? easeInOutCubic(
+          : 0;
+      const ballOpacity = resetting ? 1 - resetProgress : 1;
+      const descentProgress = resetting
+        ? 1
+        : playing
+          ? easeInOutCubic(
             clamp(
               (elapsed - phaseTimes.descentStart) /
                 (phaseTimes.descentEnd - phaseTimes.descentStart),
             ),
           )
-        : 0;
-      const landscapeAlpha = !playing
+          : 0;
+      const landscapeAlpha = resetting || !playing
         ? 1
         : elapsed < 260
           ? 1 - easeInOutCubic(clamp(elapsed / 260)) * 0.48
@@ -282,15 +324,6 @@ export default function Home() {
         };
       };
 
-      const horizontalSteps = 60;
-      const verticalSteps = 50;
-      const triangles: {
-        points: ReturnType<typeof project>[];
-        depth: number;
-        tones: [number, number, number];
-        shades: [number, number, number];
-      }[] = [];
-
       const xExtent = 5.7 + cameraProgress * 10.3;
       const yFrontExtent = 4.8 + cameraProgress * 9.2;
       const yBackExtent = 4.8 + cameraProgress * 11.2;
@@ -299,96 +332,74 @@ export default function Home() {
       const yMin = -yFrontExtent;
       const yMax = yBackExtent;
       const visibleHeightRange = 0.5 * 4.8 * 4.8;
-      const lightLength = Math.hypot(-0.48, -0.38, 0.8);
-      const light = {
-        x: -0.48 / lightLength,
-        y: -0.38 / lightLength,
-        z: 0.8 / lightLength,
-      };
-      for (let row = 0; row < verticalSteps; row += 1) {
-        const y1 = yMin + (row / verticalSteps) * (yMax - yMin);
-        const y2 = yMin + ((row + 1) / verticalSteps) * (yMax - yMin);
-        for (let column = 0; column < horizontalSteps; column += 1) {
-          const x1 = xMin + (column / horizontalSteps) * (xMax - xMin);
-          const x2 = xMin + ((column + 1) / horizontalSteps) * (xMax - xMin);
-          const worldPoint = (x: number, y: number) => {
-            const level = loss(x, y);
-            const { u, v } = worldToEigen(x, y);
-            const gradient = eigenToWorld(LAMBDA_U * u, LAMBDA_V * v);
-            const normalLength = Math.hypot(
-              gradient.x * SURFACE_HEIGHT,
-              gradient.y * SURFACE_HEIGHT,
-              1,
-            );
-            const normal = {
-              x: (-gradient.x * SURFACE_HEIGHT) / normalLength,
-              y: (-gradient.y * SURFACE_HEIGHT) / normalLength,
-              z: 1 / normalLength,
-            };
-            const diffuse = clamp(
-              normal.x * light.x + normal.y * light.y + normal.z * light.z,
-              0,
-              1,
-            );
-            const slopeLift = (1 - normal.z) * 0.055;
-            const specular = Math.pow(diffuse, 18) * 0.045;
-            return {
-              projected: project(x, y, level * SURFACE_HEIGHT),
-              level,
-              tone: Math.pow(clamp(level / visibleHeightRange), 0.72),
-              shade: clamp(0.7 + diffuse * 0.36 + slopeLift + specular, 0.7, 1.1),
-            };
-          };
-          const p1 = worldPoint(x1, y1);
-          const p2 = worldPoint(x2, y1);
-          const p3 = worldPoint(x2, y2);
-          const p4 = worldPoint(x1, y2);
-          triangles.push({
-            points: [p1.projected, p2.projected, p3.projected],
-            depth: (p1.projected.depth + p2.projected.depth + p3.projected.depth) / 3,
-            tones: [p1.tone, p2.tone, p3.tone],
-            shades: [p1.shade, p2.shade, p3.shade],
-          });
-          triangles.push({
-            points: [p1.projected, p3.projected, p4.projected],
-            depth: (p1.projected.depth + p3.projected.depth + p4.projected.depth) / 3,
-            tones: [p1.tone, p3.tone, p4.tone],
-            shades: [p1.shade, p3.shade, p4.shade],
-          });
-        }
-      }
-
-      triangles.sort((a, b) => a.depth - b.depth);
       surfaceContext.clearRect(0, 0, width, height);
-      for (const triangle of triangles) {
-        let lowIndex = 0;
-        let highIndex = 0;
-        triangle.tones.forEach((tone, index) => {
-          if (tone < triangle.tones[lowIndex]) lowIndex = index;
-          if (tone > triangle.tones[highIndex]) highIndex = index;
-        });
-        const lowPoint = triangle.points[lowIndex];
-        const highPoint = triangle.points[highIndex];
-        const color = surfaceContext.createLinearGradient(
-          lowPoint.x,
-          lowPoint.y,
-          highPoint.x,
-          highPoint.y,
+      surfaceContext.save();
+      surfaceContext.beginPath();
+      const boundarySteps = 120;
+      const traceBoundary = (x: number, y: number, move = false) => {
+        const point = project(x, y, loss(x, y) * SURFACE_HEIGHT);
+        if (move) surfaceContext.moveTo(point.x, point.y);
+        else surfaceContext.lineTo(point.x, point.y);
+      };
+      for (let index = 0; index <= boundarySteps; index += 1) {
+        traceBoundary(
+          xMin + (index / boundarySteps) * (xMax - xMin),
+          yMin,
+          index === 0,
         );
-        color.addColorStop(
-          0,
-          surfaceColor(triangle.tones[lowIndex], triangle.shades[lowIndex]),
+      }
+      for (let index = 1; index <= boundarySteps; index += 1) {
+        traceBoundary(xMax, yMin + (index / boundarySteps) * (yMax - yMin));
+      }
+      for (let index = 1; index <= boundarySteps; index += 1) {
+        traceBoundary(xMax - (index / boundarySteps) * (xMax - xMin), yMax);
+      }
+      for (let index = 1; index <= boundarySteps; index += 1) {
+        traceBoundary(xMin, yMax - (index / boundarySteps) * (yMax - yMin));
+      }
+      surfaceContext.closePath();
+      surfaceContext.clip();
+      surfaceContext.fillStyle = surfaceColor(1, 0.86);
+      surfaceContext.fillRect(0, 0, width, height);
+      const colorBandCount = 84;
+      const colorBandSteps = 112;
+      for (let band = colorBandCount - 1; band >= 0; band -= 1) {
+        const radius = 4.8 * ((band + 1) / colorBandCount);
+        const level = 0.5 * radius * radius;
+        const tone = Math.pow(clamp(level / visibleHeightRange), 0.72);
+        const bandPoints: ReturnType<typeof project>[] = [];
+        let minBandX = Number.POSITIVE_INFINITY;
+        let minBandY = Number.POSITIVE_INFINITY;
+        let maxBandX = Number.NEGATIVE_INFINITY;
+        let maxBandY = Number.NEGATIVE_INFINITY;
+        for (let index = 0; index <= colorBandSteps; index += 1) {
+          const angle = (index / colorBandSteps) * Math.PI * 2;
+          const u = (radius / Math.sqrt(LAMBDA_U)) * Math.cos(angle);
+          const v = (radius / Math.sqrt(LAMBDA_V)) * Math.sin(angle);
+          const point = eigenToWorld(u, v);
+          const projected = project(point.x, point.y, level * SURFACE_HEIGHT);
+          bandPoints.push(projected);
+          minBandX = Math.min(minBandX, projected.x);
+          minBandY = Math.min(minBandY, projected.y);
+          maxBandX = Math.max(maxBandX, projected.x);
+          maxBandY = Math.max(maxBandY, projected.y);
+        }
+        const light = surfaceContext.createLinearGradient(
+          minBandX,
+          minBandY,
+          maxBandX,
+          maxBandY,
         );
-        color.addColorStop(
-          1,
-          surfaceColor(triangle.tones[highIndex], triangle.shades[highIndex]),
-        );
+        light.addColorStop(0, surfaceColor(tone, 1.05));
+        light.addColorStop(0.52, surfaceColor(tone, 0.98));
+        light.addColorStop(1, surfaceColor(tone, 0.84));
         surfaceContext.beginPath();
-        surfaceContext.moveTo(triangle.points[0].x, triangle.points[0].y);
-        surfaceContext.lineTo(triangle.points[1].x, triangle.points[1].y);
-        surfaceContext.lineTo(triangle.points[2].x, triangle.points[2].y);
+        surfaceContext.moveTo(bandPoints[0].x, bandPoints[0].y);
+        for (let index = 1; index < bandPoints.length; index += 1) {
+          surfaceContext.lineTo(bandPoints[index].x, bandPoints[index].y);
+        }
         surfaceContext.closePath();
-        surfaceContext.fillStyle = color;
+        surfaceContext.fillStyle = light;
         surfaceContext.fill();
       }
 
@@ -404,10 +415,35 @@ export default function Home() {
       edgeGradient.addColorStop(1, `rgba(0, 0, 0, ${0.2 + 0.08 * (1 - cameraProgress)})`);
       surfaceContext.fillStyle = edgeGradient;
       surfaceContext.fillRect(0, 0, width, height);
+      surfaceContext.beginPath();
+      for (let index = 0; index <= boundarySteps; index += 1) {
+        traceBoundary(
+          xMin + (index / boundarySteps) * (xMax - xMin),
+          yMin,
+          index === 0,
+        );
+      }
+      for (let index = 1; index <= boundarySteps; index += 1) {
+        traceBoundary(xMax, yMin + (index / boundarySteps) * (yMax - yMin));
+      }
+      for (let index = 1; index <= boundarySteps; index += 1) {
+        traceBoundary(xMax - (index / boundarySteps) * (xMax - xMin), yMax);
+      }
+      for (let index = 1; index <= boundarySteps; index += 1) {
+        traceBoundary(xMin, yMax - (index / boundarySteps) * (yMax - yMin));
+      }
+      surfaceContext.closePath();
+      surfaceContext.globalCompositeOperation = "destination-out";
+      surfaceContext.strokeStyle = "rgba(0, 0, 0, 1)";
+      surfaceContext.lineWidth = 14;
+      surfaceContext.lineJoin = "round";
+      surfaceContext.lineCap = "round";
+      surfaceContext.stroke();
+      surfaceContext.globalCompositeOperation = "source-over";
+      surfaceContext.restore();
 
       context.save();
       context.globalAlpha = landscapeAlpha * 0.86;
-      context.filter = "blur(3.2px)";
       context.imageSmoothingEnabled = true;
       context.imageSmoothingQuality = "high";
       context.drawImage(surfaceCanvas, 0, 0, width, height);
@@ -451,6 +487,8 @@ export default function Home() {
       }
 
       if (ballProgress > 0) {
+        context.save();
+        context.globalAlpha = ballOpacity;
         const stepFloat = descentProgress * (path.length - 1);
         const stepIndex = Math.min(Math.floor(stepFloat), path.length - 2);
         const stepAmount = stepFloat - stepIndex;
@@ -491,7 +529,7 @@ export default function Home() {
         }
 
         const projectedBall = project(ball.x, ball.y, loss(ball.x, ball.y) * SURFACE_HEIGHT + 0.12);
-        const pop = easeOutCubic(ballProgress);
+        const pop = easeOutBack(ballProgress);
         const radius = (5.4 + Math.min(width, height) * 0.0024) * pop;
         const glow = context.createRadialGradient(
           projectedBall.x,
@@ -526,11 +564,13 @@ export default function Home() {
         context.strokeStyle = "rgba(255, 255, 255, 0.42)";
         context.lineWidth = 1;
         context.stroke();
-
+        context.restore();
       }
 
       let phase = "Ready to descend";
-      if (playing) {
+      if (resetting) {
+        phase = "Returning to the opening view";
+      } else if (playing) {
         if (elapsed < phaseTimes.contourStart) phase = "Finding a better view";
         else if (elapsed < phaseTimes.ballStart) phase = "Revealing the landscape";
         else if (elapsed < phaseTimes.descentStart) phase = "Starting position";
@@ -548,17 +588,26 @@ export default function Home() {
         setComplete(true);
       }
 
+      if (resetting && elapsed >= resetDuration && !didReset) {
+        didReset = true;
+        setResetting(false);
+        setComplete(false);
+        setPhaseLabel("Ready to descend");
+      }
+
       animationRef.current = requestAnimationFrame(draw);
     };
 
+    drawLatest = draw;
     draw(performance.now());
 
     return () => {
       observer.disconnect();
       media.removeEventListener("change", onMotionChange);
+      if (resizeTimer !== null) window.clearTimeout(resizeTimer);
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [runKey, selected]);
+  }, [runKey, selected, resetting]);
 
   return (
     <main className="experience">
@@ -589,7 +638,7 @@ export default function Home() {
               role="radio"
               aria-checked={selected === id}
               className={`preset preset-${id} ${selected === id ? "selected" : ""}`}
-              disabled={playing && !complete}
+              disabled={(playing && !complete) || resetting}
               onClick={() => choosePreset(id)}
             >
               <span className="preset-indicator" />
@@ -604,13 +653,13 @@ export default function Home() {
           type="button"
           className="play-button"
           onClick={complete ? reset : play}
-          disabled={playing}
+          disabled={playing || resetting}
           aria-label={complete ? "Reset animation" : "Play animation"}
         >
           <span className={complete ? "reset-icon" : "play-icon"} aria-hidden="true">
             {complete ? "↻" : ""}
           </span>
-          <span>{playing ? "Playing" : complete ? "Reset" : "Play"}</span>
+          <span>{resetting ? "Resetting" : playing ? "Playing" : complete ? "Reset" : "Play"}</span>
         </button>
       </section>
     </main>

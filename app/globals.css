@@ -56,10 +56,11 @@ button {
 .hero {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   width: min(1440px, calc(100% - 88px));
   min-height: 100svh;
   margin: 0 auto;
+  padding-top: clamp(44px, 7svh, 72px);
   padding-bottom: 94px;
 }
 
@@ -71,7 +72,7 @@ button {
 }
 
 .kicker {
-  margin: 0 0 22px;
+  margin: 0 0 14px;
   color: rgba(208, 220, 232, 0.76);
   font-size: 10px;
   font-weight: 650;
@@ -93,7 +94,7 @@ h1 {
 
 .lede {
   max-width: 380px;
-  margin: 26px 0 0;
+  margin: 22px 0 0;
   color: rgba(224, 228, 235, 0.8);
   font-size: 14px;
   font-weight: 400;
@@ -126,7 +127,8 @@ h1 {
   display: flex;
   align-items: stretch;
   gap: 3px;
-  width: min(540px, calc(100% - 36px));
+  width: max-content;
+  max-width: calc(100% - 36px);
   min-height: 54px;
   padding: 5px;
   border: 1px solid rgba(255, 255, 255, 0.13);
@@ -147,8 +149,8 @@ h1 {
 
 .preset-group {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  flex: 1;
+  grid-template-columns: repeat(3, max-content);
+  flex: 0 0 auto;
   gap: 0;
 }
 
@@ -159,7 +161,7 @@ h1 {
   justify-content: center;
   gap: 7px;
   min-width: 0;
-  padding: 5px 8px;
+  padding: 5px 12px;
   border: 0;
   border-radius: 12px;
   color: rgba(223, 228, 235, 0.52);
@@ -366,6 +368,7 @@ h1 {
   }
 
   .preset-group {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     height: 52px;
   }
 

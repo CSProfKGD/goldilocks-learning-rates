@@ -12,6 +12,8 @@ The experience should feel like a short, premium presentation rather than a simu
 
 Final working title: **The Goldilocks Principle of Learning Rates**.
 
+The eyebrow, title, and subtitle are treated as one upper-left presentation block. Its top edge sits at roughly 7% of the desktop viewport, preserving the established left margin while leaving the lower-left intentionally open.
+
 ## Source-project status
 
 The requested starting point was the **Gradient Descent** project, but its source was not available in the workspace. The current implementation was therefore built as a deterministic canvas presentation rather than inventing compatibility with an unseen codebase. It retains the requested single-ball, actual-position trail behavior.
@@ -20,7 +22,7 @@ The requested starting point was the **Gradient Descent** project, but its sourc
 
 - One smooth 3D parabola/bowl surface representing the loss landscape. It extends beyond the scene so the browser viewport—not an artificial oval or rectangular model boundary—is the visible clipping boundary.
 - The experience uses a pure black background with no top header, logo strip, status strip, or header divider.
-- The surface uses a height-normalized cool gradient: midnight indigo in the valley, royal blue through the lower slopes, restrained cyan/teal at upper-middle elevations, and lavender-blue at the highest peaks. A soft upper-left directional light modulates the analytical height color using the surface normal, with restrained diffuse and specular response. Color transitions are continuous and softly rendered, never rainbow-like or visibly meshed.
+- The surface uses a height-normalized cool gradient: midnight indigo in the valley, royal blue through the lower slopes, restrained cyan/teal at upper-middle elevations, and lavender-blue at the highest peaks. Smooth filled elevation bands are generated from the same analytical loss ellipses and projected surface heights as the contours, then clipped through a high-resolution analytical silhouette. A restrained upper-left luminance gradient adds directional depth without facets. The offscreen surface buffer renders at the full device-pixel ratio and composites without blur, preserving a crisp silhouette and smooth interior color through the full camera move.
 - One ball representing the current parameter state.
 - One trail outlining that ball's past positions, matching the treatment used in the source Gradient Descent project.
 - No isocurve plane.
@@ -86,7 +88,7 @@ The deterministic quadratic uses eigenvalue curvatures `0.56` and `0.23`, 18 upd
 
 - Camera: smooth, confident, slow-in/slow-out, with no visible snapping at the end.
 - Contours: the complete field dissolves in together during rotation and zoom; no per-ring delay or harsh toggle.
-- Ball entrance: restrained overshoot and settle, lasting only a few hundred milliseconds.
+- Ball entrance: restrained scale overshoot and settle—a small, polished bounce lasting only a few hundred milliseconds.
 - Gradient descent: positions should come from the optimization algorithm. Interpolate between algorithm steps only to make the true sequence readable and fluid.
 - Trail: extend it from the ball's sampled position history as descent progresses. Its luminous core, soft halo, and sequential position markers use cyan for Too low, coral for Too large, and green for Just right.
 - Ending: gently hold the final ball and trail. Do not add a label, badge, or celebratory effect around the ball.
@@ -106,6 +108,7 @@ Some visual phases may overlap on the timeline even if the logical state has one
 - Provide useful accessible labels for the visualization and controls.
 - Respect reduced-motion preferences with a short crossfade/reframe and fewer interpolated descent movements.
 - Keep controls usable and the bowl legible on smaller screens; adjust framing and spacing rather than shrinking everything indiscriminately.
+- During live window resizing, retain and scale the last rendered canvas frame. Resize the backing buffers and redraw atomically after dimensions settle so the surface, contours, ball, and trail never flash blank.
 
 ## Resolved implementation choices
 
@@ -123,5 +126,5 @@ Some visual phases may overlap on the timeline even if the logical state has one
 - The visualization never displays an isocurve plane.
 - Each preset produces its intended and visibly distinct behavior from the same start point.
 - The ball leaves a readable trail through its actual past positions, consistent with the source project.
-- Reset fully restores the ready scene, camera, contours, ball, and simulation state; its label then returns to Play and playback waits.
+- Reset plays a coordinated reverse transition: the camera eases back through its zoom and rotation while the ball, trail, and complete contour field dissolve out together. After the transition, the control returns to Play and playback waits.
 - The result feels presentation-grade, not like a raw technical demo.
