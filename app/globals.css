@@ -92,6 +92,11 @@ h1 {
   text-shadow: 0 4px 22px rgba(0, 0, 0, 0.34);
 }
 
+.title-line {
+  display: block;
+  white-space: nowrap;
+}
+
 .lede {
   max-width: 380px;
   margin: 22px 0 0;

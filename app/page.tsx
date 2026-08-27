@@ -185,6 +185,9 @@ export default function Home() {
     const meshCanvas = document.createElement("canvas");
     const meshContext = meshCanvas.getContext("2d");
     if (!meshContext) return;
+    const maskCanvas = document.createElement("canvas");
+    const maskContext = maskCanvas.getContext("2d");
+    if (!maskContext) return;
 
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
     let reducedMotion = media.matches;
@@ -243,9 +246,17 @@ export default function Home() {
         meshCanvas.width = surfaceWidth;
         meshCanvas.height = surfaceHeight;
       }
+      if (
+        maskCanvas.width !== surfaceWidth ||
+        maskCanvas.height !== surfaceHeight
+      ) {
+        maskCanvas.width = surfaceWidth;
+        maskCanvas.height = surfaceHeight;
+      }
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
       surfaceContext.setTransform(dpr, 0, 0, dpr, 0, 0);
       meshContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+      maskContext.setTransform(dpr, 0, 0, dpr, 0, 0);
       if (changed && drawLatest) {
         if (animationRef.current) cancelAnimationFrame(animationRef.current);
         drawLatest(performance.now());
@@ -388,11 +399,11 @@ export default function Home() {
         target.closePath();
       };
 
+      // The depth-sorted mesh becomes numerically ambiguous near the top view.
+      // Hand off before that angle. A projected-cell mask below gives both
+      // renderers the exact same raster silhouette during the crossover.
       const bandBlend = easeInOutCubic(clamp((cameraProgress - 0.18) / 0.34));
       const meshAlpha = 1 - bandBlend;
-      const rimAlpha = bandBlend * (
-        1 - easeInOutCubic(clamp((cameraProgress - 0.56) / 0.22))
-      );
       meshContext.clearRect(0, 0, width, height);
       if (meshAlpha > 0) {
         const uSteps = 64;
@@ -513,8 +524,6 @@ export default function Home() {
 
       surfaceContext.save();
       surfaceContext.globalAlpha = bandBlend;
-      traceBoundary(surfaceContext);
-      surfaceContext.clip();
       surfaceContext.fillStyle = surfaceColor(1, 0.86);
       surfaceContext.fillRect(0, 0, width, height);
       const colorRadius = Math.min(surfaceRadius, 6.2);
@@ -584,19 +593,55 @@ export default function Home() {
       surfaceContext.fillRect(0, 0, width, height);
       surfaceContext.restore();
 
+      if (bandBlend > 0 && cameraProgress < 0.78) {
+        const maskSteps = 18;
+        const uExtent = surfaceRadius / Math.sqrt(LAMBDA_U);
+        const vExtent = surfaceRadius / Math.sqrt(LAMBDA_V);
+        maskContext.clearRect(0, 0, width, height);
+        maskContext.fillStyle = "#fff";
+        maskContext.strokeStyle = "#fff";
+        maskContext.lineWidth = 1;
+        maskContext.lineJoin = "round";
+        for (let uIndex = 0; uIndex < maskSteps; uIndex += 1) {
+          const u0 = -uExtent + (uIndex / maskSteps) * uExtent * 2;
+          const u1 = -uExtent + ((uIndex + 1) / maskSteps) * uExtent * 2;
+          for (let vIndex = 0; vIndex < maskSteps; vIndex += 1) {
+            const v0 = -vExtent + (vIndex / maskSteps) * vExtent * 2;
+            const v1 = -vExtent + ((vIndex + 1) / maskSteps) * vExtent * 2;
+            const projected = [
+              [u0, v0],
+              [u1, v0],
+              [u1, v1],
+              [u0, v1],
+            ].map(([u, v]) => {
+              const point = eigenToWorld(u, v);
+              return project(
+                point.x,
+                point.y,
+                loss(point.x, point.y) * SURFACE_HEIGHT,
+              );
+            });
+            maskContext.beginPath();
+            maskContext.moveTo(projected[0].x, projected[0].y);
+            for (let index = 1; index < projected.length; index += 1) {
+              maskContext.lineTo(projected[index].x, projected[index].y);
+            }
+            maskContext.closePath();
+            maskContext.fill();
+            maskContext.stroke();
+          }
+        }
+        surfaceContext.save();
+        surfaceContext.globalCompositeOperation = "destination-in";
+        surfaceContext.drawImage(maskCanvas, 0, 0, width, height);
+        surfaceContext.restore();
+      }
+
       context.save();
       context.globalAlpha = 0.86;
       context.imageSmoothingEnabled = true;
       context.imageSmoothingQuality = "high";
       context.drawImage(surfaceCanvas, 0, 0, width, height);
-      context.restore();
-
-      context.save();
-      context.globalAlpha = rimAlpha;
-      traceBoundary(context);
-      context.strokeStyle = "rgba(154, 205, 237, 0.12)";
-      context.lineWidth = 1;
-      context.stroke();
       context.restore();
 
       context.save();
@@ -770,7 +815,10 @@ export default function Home() {
       <section className="hero" aria-labelledby="page-title">
         <div className="intro">
           <p className="kicker">Gradient descent</p>
-          <h1 id="page-title">The Goldilocks<br />Principle<br />of Learning Rates</h1>
+          <h1 id="page-title">
+            <span className="title-line">The Goldilocks Principle</span>{" "}
+            <span className="title-line">of Learning Rates</span>
+          </h1>
           <p className="lede">One number. Three very different outcomes.</p>
         </div>
 

@@ -12,7 +12,7 @@ The experience should feel like a short, premium presentation rather than a simu
 
 Final working title: **The Goldilocks Principle of Learning Rates**.
 
-The eyebrow, title, and subtitle are treated as one upper-left presentation block. Its top edge sits at roughly 7% of the desktop viewport, preserving the established left margin while leaving the lower-left intentionally open.
+The eyebrow, title, and subtitle are treated as one upper-left presentation block. Its top edge sits at roughly 7% of the desktop viewport, preserving the established left margin while leaving the lower-left intentionally open. The title is locked to two lines: `The Goldilocks Principle` / `of Learning Rates`.
 
 ## Source-project status
 
@@ -29,7 +29,7 @@ The requested starting point was the **Gradient Descent** project, but its sourc
 - No extra balls or side-by-side simulations.
 - A small set of subtle contour/isocurve lines dissolves directly onto the surface as one coordinated field while the camera rotates and zooms. Every contour shares the same opacity curve; none are delayed or individually staggered. The curves use the same loss function as the bowl and naturally clip at the browser viewport.
 - The opening camera shows the full bowl centered, deliberately zoomed out, and from a clean oblique side view with no contours visible. The move to the top view combines rotation and zoom using the same slow-in/slow-out easing curve while the complete contour field dissolves in.
-- The projected finite rim uses a dense analytical boundary and fades deliberately before the expanding top-view domain reaches the browser edges. Browser clipping then becomes the only visible boundary, preventing a dark edge cutout, polygonal pop, or transient rim flash near the end of camera rotation.
+- During the renderer handoff, the analytical elevation bands are alpha-masked by a raster silhouette assembled from the same projected paraboloid cells as the opening mesh. Both renderers therefore share one exact moving edge in forward and reverse, without a competing analytical rim, polygonal pop, or transient boundary flash.
 - All three presets use the same surface and the same deterministic initial ball position in the top-right of the final top view so the motion is directly comparable.
 
 ## Interface
