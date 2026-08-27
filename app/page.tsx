@@ -804,7 +804,6 @@ export default function Home() {
         aria-hidden={!(playing || complete || resetting)}
         style={{ color: PRESETS[selected].color }}
       >
-        <p className="loss-chart-heading">Loss <span>vs iteration</span></p>
         <svg viewBox="0 0 180 70" role="img" aria-hidden="true">
           <path className="loss-chart-axis" d="M8 7 V59 H172" />
           <path ref={lossGuideRef} className="loss-chart-guide" />
