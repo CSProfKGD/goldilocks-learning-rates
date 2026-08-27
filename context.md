@@ -28,8 +28,7 @@ The requested starting point was the **Gradient Descent** project, but its sourc
 - No isocurve plane.
 - No extra balls or side-by-side simulations.
 - A small set of subtle contour/isocurve lines dissolves directly onto the surface as one coordinated field while the camera rotates and zooms. Every contour shares the same opacity curve; none are delayed or individually staggered. The curves use the same loss function as the bowl and naturally clip at the browser viewport.
-- The ready frame includes only five ultra-low-opacity elliptical geometry cues. They are centered on the unique minimum, remain subordinate to the surface, and fade into the complete contour field as playback begins.
-- The opening camera shows the full bowl centered and deliberately zoomed out. The move to the top view combines rotation and zoom using the same slow-in/slow-out easing curve.
+- The opening camera shows the full bowl centered, deliberately zoomed out, and from a clean oblique side view with no contours visible. The move to the top view combines rotation and zoom using the same slow-in/slow-out easing curve while the complete contour field dissolves in.
 - All three presets use the same surface and the same deterministic initial ball position in the top-right of the final top view so the motion is directly comparable.
 
 ## Interface
@@ -117,6 +116,7 @@ Some visual phases may overlap on the timeline even if the logical state has one
 - Deterministic rotated anisotropic quadratic and fixed presets listed above.
 - Dark navy-to-indigo surface, subdued contour field, and semantic path colors.
 - Near-orthographic top view after an eased 1.8-second rotation-and-zoom move.
+- The desktop top-view camera settles no farther right than 60% of the viewport and clamps farther left when the viewport aspect ratio requires it. The clamp reserves a fixed right-edge safety margin for the top-right start and the complete Too large trajectory, keeping the ball visible throughout playback. On compact desktop widths, the side-view opening stays farther right so the bowl does not intrude into the title block, then eases left into the safe top-view framing.
 - Constant surface luminance through play and reset; camera motion introduces no opacity dip or flash.
 - No minimum label; only a small luminous center marker.
 - No outcome label appears around the ball after playback.

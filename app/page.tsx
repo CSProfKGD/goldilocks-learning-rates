@@ -297,11 +297,16 @@ export default function Home() {
 
       const baseScale = Math.min(width / 10.8, height / 7.8);
       const scale = baseScale * (0.36 + cameraProgress * 0.64);
-      const originX = width * (
-        width < 900 ? 0.5 : 0.54 + cameraProgress * 0.14
+      const compactDesktopOffset = clamp((1280 - width) / 380);
+      const openingOriginX = width * (
+        width <= 720 ? 0.5 : 0.54 + compactDesktopOffset * 0.12
       );
+      const topOriginX = width <= 720
+        ? width * 0.5
+        : Math.min(width * 0.6, width - 52 - START_EIGEN.u * baseScale);
+      const originX = openingOriginX + (topOriginX - openingOriginX) * cameraProgress;
       const originY = height * (0.56 - cameraProgress * 0.065);
-      const pitch = 0.28 * (1 - cameraProgress);
+      const pitch = 0.5 * (1 - cameraProgress);
       const yaw = -1.12 + cameraProgress * 0.69;
 
       const project = (x: number, y: number, z: number) => {
@@ -436,31 +441,6 @@ export default function Home() {
       context.save();
       traceBoundary(context);
       context.clip();
-
-      if (contourAlpha < 1) {
-        context.save();
-        const cueAlpha = (1 - contourAlpha) * 0.085;
-        for (const radius of [0.72, 1.28, 1.9, 2.58, 3.34]) {
-          context.beginPath();
-          for (let index = 0; index <= 100; index += 1) {
-            const angle = (index / 100) * Math.PI * 2;
-            const u = (radius / Math.sqrt(LAMBDA_U)) * Math.cos(angle);
-            const v = (radius / Math.sqrt(LAMBDA_V)) * Math.sin(angle);
-            const point = eigenToWorld(u, v);
-            const projected = project(
-              point.x,
-              point.y,
-              loss(point.x, point.y) * SURFACE_HEIGHT + 0.012,
-            );
-            if (index === 0) context.moveTo(projected.x, projected.y);
-            else context.lineTo(projected.x, projected.y);
-          }
-          context.strokeStyle = `rgba(190, 216, 238, ${cueAlpha})`;
-          context.lineWidth = 0.75;
-          context.stroke();
-        }
-        context.restore();
-      }
 
       if (contourAlpha > 0) {
         context.save();
