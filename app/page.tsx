@@ -157,10 +157,13 @@ export default function Home() {
   }, []);
 
   const choosePreset = (preset: PresetId) => {
-    if (playing) return;
+    if (playing && !complete) return;
+    runRef.current += 1;
+    setPlaying(false);
     setSelected(preset);
     setComplete(false);
     setPhaseLabel("Ready to descend");
+    setRunKey(runRef.current);
   };
 
   useEffect(() => {
@@ -586,7 +589,7 @@ export default function Home() {
               role="radio"
               aria-checked={selected === id}
               className={`preset preset-${id} ${selected === id ? "selected" : ""}`}
-              disabled={playing}
+              disabled={playing && !complete}
               onClick={() => choosePreset(id)}
             >
               <span className="preset-indicator" />
