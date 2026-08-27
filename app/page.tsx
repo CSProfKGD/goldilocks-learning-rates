@@ -63,19 +63,20 @@ function hexToRgb(hex: string) {
 }
 
 const SURFACE_PALETTE = [
-  { at: 0, color: [5, 14, 34] },
-  { at: 0.24, color: [8, 35, 67] },
-  { at: 0.48, color: [18, 64, 88] },
-  { at: 0.7, color: [41, 52, 91] },
-  { at: 0.86, color: [62, 49, 89] },
-  { at: 1, color: [91, 65, 68] },
+  { at: 0, color: [17, 26, 70] },
+  { at: 0.18, color: [23, 33, 92] },
+  { at: 0.42, color: [36, 72, 168] },
+  { at: 0.62, color: [40, 100, 199] },
+  { at: 0.8, color: [22, 143, 184] },
+  { at: 0.92, color: [36, 193, 192] },
+  { at: 1, color: [112, 96, 209] },
 ] as const;
 
-function surfaceColor(tone: number) {
+function surfaceColor(tone: number, luminance = 1) {
   const upperIndex = SURFACE_PALETTE.findIndex((stop) => tone <= stop.at);
   if (upperIndex <= 0) {
     const [r, g, b] = SURFACE_PALETTE[0].color;
-    return `rgb(${r} ${g} ${b})`;
+    return `rgb(${Math.round(r * luminance)} ${Math.round(g * luminance)} ${Math.round(b * luminance)})`;
   }
   const low = SURFACE_PALETTE[upperIndex - 1];
   const high = SURFACE_PALETTE[upperIndex];
@@ -83,7 +84,10 @@ function surfaceColor(tone: number) {
   const channels = low.color.map((channel, index) =>
     Math.round(channel + (high.color[index] - channel) * amount),
   );
-  return `rgb(${channels[0]} ${channels[1]} ${channels[2]})`;
+  const lit = channels.map((channel) =>
+    Math.round(clamp(channel * luminance, 0, 255)),
+  );
+  return `rgb(${lit[0]} ${lit[1]} ${lit[2]})`;
 }
 
 function eigenToWorld(u: number, v: number): Point {
@@ -281,6 +285,7 @@ export default function Home() {
         points: ReturnType<typeof project>[];
         depth: number;
         tones: [number, number, number];
+        shades: [number, number, number];
       }[] = [];
 
       const xExtent = 5.7 + cameraProgress * 10.3;
@@ -290,6 +295,13 @@ export default function Home() {
       const xMax = xExtent;
       const yMin = -yFrontExtent;
       const yMax = yBackExtent;
+      const visibleHeightRange = 0.5 * 4.8 * 4.8;
+      const lightLength = Math.hypot(-0.48, -0.38, 0.8);
+      const light = {
+        x: -0.48 / lightLength,
+        y: -0.38 / lightLength,
+        z: 0.8 / lightLength,
+      };
       for (let row = 0; row < verticalSteps; row += 1) {
         const y1 = yMin + (row / verticalSteps) * (yMax - yMin);
         const y2 = yMin + ((row + 1) / verticalSteps) * (yMax - yMin);
@@ -298,9 +310,30 @@ export default function Home() {
           const x2 = xMin + ((column + 1) / horizontalSteps) * (xMax - xMin);
           const worldPoint = (x: number, y: number) => {
             const level = loss(x, y);
+            const { u, v } = worldToEigen(x, y);
+            const gradient = eigenToWorld(LAMBDA_U * u, LAMBDA_V * v);
+            const normalLength = Math.hypot(
+              gradient.x * SURFACE_HEIGHT,
+              gradient.y * SURFACE_HEIGHT,
+              1,
+            );
+            const normal = {
+              x: (-gradient.x * SURFACE_HEIGHT) / normalLength,
+              y: (-gradient.y * SURFACE_HEIGHT) / normalLength,
+              z: 1 / normalLength,
+            };
+            const diffuse = clamp(
+              normal.x * light.x + normal.y * light.y + normal.z * light.z,
+              0,
+              1,
+            );
+            const slopeLift = (1 - normal.z) * 0.055;
+            const specular = Math.pow(diffuse, 18) * 0.045;
             return {
               projected: project(x, y, level * SURFACE_HEIGHT),
               level,
+              tone: Math.pow(clamp(level / visibleHeightRange), 0.72),
+              shade: clamp(0.7 + diffuse * 0.36 + slopeLift + specular, 0.7, 1.1),
             };
           };
           const p1 = worldPoint(x1, y1);
@@ -310,12 +343,14 @@ export default function Home() {
           triangles.push({
             points: [p1.projected, p2.projected, p3.projected],
             depth: (p1.projected.depth + p2.projected.depth + p3.projected.depth) / 3,
-            tones: [clamp(p1.level / 16), clamp(p2.level / 16), clamp(p3.level / 16)],
+            tones: [p1.tone, p2.tone, p3.tone],
+            shades: [p1.shade, p2.shade, p3.shade],
           });
           triangles.push({
             points: [p1.projected, p3.projected, p4.projected],
             depth: (p1.projected.depth + p3.projected.depth + p4.projected.depth) / 3,
-            tones: [clamp(p1.level / 16), clamp(p3.level / 16), clamp(p4.level / 16)],
+            tones: [p1.tone, p3.tone, p4.tone],
+            shades: [p1.shade, p3.shade, p4.shade],
           });
         }
       }
@@ -337,8 +372,14 @@ export default function Home() {
           highPoint.x,
           highPoint.y,
         );
-        color.addColorStop(0, surfaceColor(triangle.tones[lowIndex]));
-        color.addColorStop(1, surfaceColor(triangle.tones[highIndex]));
+        color.addColorStop(
+          0,
+          surfaceColor(triangle.tones[lowIndex], triangle.shades[lowIndex]),
+        );
+        color.addColorStop(
+          1,
+          surfaceColor(triangle.tones[highIndex], triangle.shades[highIndex]),
+        );
         surfaceContext.beginPath();
         surfaceContext.moveTo(triangle.points[0].x, triangle.points[0].y);
         surfaceContext.lineTo(triangle.points[1].x, triangle.points[1].y);
@@ -522,10 +563,7 @@ export default function Home() {
         <div className="intro">
           <p className="kicker">Gradient descent</p>
           <h1 id="page-title">The Goldilocks<br />Principle<br />of Learning Rates</h1>
-          <p className="lede">
-            See how one small number can turn the same downhill direction into
-            patience, precision, or chaos.
-          </p>
+          <p className="lede">One number. Three very different outcomes.</p>
         </div>
 
         <div className="visualization">
@@ -559,7 +597,6 @@ export default function Home() {
             </button>
           ))}
         </div>
-        <div className="dock-divider" />
         <button
           type="button"
           className="play-button"

@@ -243,12 +243,6 @@ h1 {
   color: color-mix(in srgb, var(--semantic) 80%, white);
 }
 
-.dock-divider {
-  width: 1px;
-  margin: 7px 1px;
-  background: rgba(255, 255, 255, 0.08);
-}
-
 .play-button {
   display: flex;
   align-items: center;
@@ -387,12 +381,6 @@ h1 {
 
   .preset-copy small {
     font-size: 7px;
-  }
-
-  .dock-divider {
-    width: auto;
-    height: 1px;
-    margin: 3px 6px 6px;
   }
 
   .play-button {

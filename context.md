@@ -20,7 +20,7 @@ The requested starting point was the **Gradient Descent** project, but its sourc
 
 - One smooth 3D parabola/bowl surface representing the loss landscape. It extends beyond the scene so the browser viewport—not an artificial oval or rectangular model boundary—is the visible clipping boundary.
 - The experience uses a pure black background with no top header, logo strip, status strip, or header divider.
-- The surface uses a restrained dark navy-to-indigo elevation palette. Color transitions are continuous and softly rendered, never rainbow-like or visibly meshed.
+- The surface uses a height-normalized cool gradient: midnight indigo in the valley, royal blue through the lower slopes, restrained cyan/teal at upper-middle elevations, and lavender-blue at the highest peaks. A soft upper-left directional light modulates the analytical height color using the surface normal, with restrained diffuse and specular response. Color transitions are continuous and softly rendered, never rainbow-like or visibly meshed.
 - One ball representing the current parameter state.
 - One trail outlining that ball's past positions, matching the treatment used in the source Gradient Descent project.
 - No isocurve plane.
