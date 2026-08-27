@@ -125,10 +125,10 @@ h1 {
   bottom: 28px;
   display: flex;
   align-items: stretch;
-  gap: 5px;
-  width: min(650px, calc(100% - 36px));
-  min-height: 58px;
-  padding: 6px;
+  gap: 3px;
+  width: min(540px, calc(100% - 36px));
+  min-height: 54px;
+  padding: 5px;
   border: 1px solid rgba(255, 255, 255, 0.13);
   border-radius: 18px;
   background: linear-gradient(
@@ -157,9 +157,9 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
+  gap: 7px;
   min-width: 0;
-  padding: 6px 12px;
+  padding: 5px 8px;
   border: 0;
   border-radius: 12px;
   color: rgba(223, 228, 235, 0.52);
@@ -245,7 +245,7 @@ h1 {
 
 .dock-divider {
   width: 1px;
-  margin: 8px 2px;
+  margin: 7px 1px;
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -253,8 +253,8 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  width: 94px;
+  gap: 7px;
+  width: 86px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   color: rgba(250, 251, 252, 0.92);

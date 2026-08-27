@@ -37,7 +37,7 @@ The bottom control area contains three mutually exclusive learning-rate choices:
 2. `Too large`
 3. `Just right`
 
-Each option includes its numeric learning rate. It also provides a clear play control that becomes `Reset` after a run; Reset returns to the ready frame and waits for a new Play. The selected option is unmistakable but visually quiet, using semantic color and type rather than a boxed selection. Controls live in a compact translucent glass panel and remain anchored and stable while the scene animates.
+Each option includes its numeric learning rate. It also provides a clear play control that becomes `Reset` after a run; Reset returns to the ready frame and waits for a new Play. The selected option is unmistakable but visually quiet, using semantic color and type rather than a boxed selection. Controls live in a tightly fitted translucent glass panel with minimal unused space and remain anchored and stable while the scene animates.
 
 Initial default: **Just right**.
 
