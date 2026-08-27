@@ -7,32 +7,35 @@ type Point = { x: number; y: number };
 
 const PRESETS: Record<
   PresetId,
-  { label: string; eyebrow: string; rate: number; summary: string }
+  { label: string; eyebrow: string; rate: number; summary: string; color: string }
 > = {
   low: {
     label: "Too low",
     eyebrow: "Cautious",
     rate: 0.065,
-    summary: "Steady, but painfully slow",
+    summary: "Slow progress",
+    color: "#69d5e7",
   },
   high: {
     label: "Too large",
     eyebrow: "Unstable",
     rate: 3.5,
-    summary: "Overshoots again and again",
+    summary: "Unstable",
+    color: "#ff8a65",
   },
   right: {
     label: "Just right",
     eyebrow: "Balanced",
     rate: 1.2,
-    summary: "Fast, controlled convergence",
+    summary: "Converges",
+    color: "#70d98b",
   },
 };
 
 const LAMBDA_U = 0.56;
 const LAMBDA_V = 0.23;
 const ROTATION = 0.43;
-const START_EIGEN = { u: -2.82, v: 2.18 };
+const START_EIGEN = { u: -3.8, v: 3.0 };
 const STEP_COUNT = 18;
 const SURFACE_HEIGHT = 0.72;
 
@@ -42,14 +45,45 @@ function easeInOutCubic(value: number) {
     : 1 - Math.pow(-2 * value + 2, 3) / 2;
 }
 
-function easeOutBack(value: number) {
-  const c1 = 1.18;
-  const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(value - 1, 3) + c1 * Math.pow(value - 1, 2);
+function easeOutCubic(value: number) {
+  return 1 - Math.pow(1 - value, 3);
 }
 
 function clamp(value: number, min = 0, max = 1) {
   return Math.min(max, Math.max(min, value));
+}
+
+function hexToRgb(hex: string) {
+  const value = Number.parseInt(hex.slice(1), 16);
+  return {
+    r: (value >> 16) & 255,
+    g: (value >> 8) & 255,
+    b: value & 255,
+  };
+}
+
+const SURFACE_PALETTE = [
+  { at: 0, color: [5, 14, 34] },
+  { at: 0.24, color: [8, 35, 67] },
+  { at: 0.48, color: [18, 64, 88] },
+  { at: 0.7, color: [41, 52, 91] },
+  { at: 0.86, color: [62, 49, 89] },
+  { at: 1, color: [91, 65, 68] },
+] as const;
+
+function surfaceColor(tone: number) {
+  const upperIndex = SURFACE_PALETTE.findIndex((stop) => tone <= stop.at);
+  if (upperIndex <= 0) {
+    const [r, g, b] = SURFACE_PALETTE[0].color;
+    return `rgb(${r} ${g} ${b})`;
+  }
+  const low = SURFACE_PALETTE[upperIndex - 1];
+  const high = SURFACE_PALETTE[upperIndex];
+  const amount = (tone - low.at) / (high.at - low.at);
+  const channels = low.color.map((channel, index) =>
+    Math.round(channel + (high.color[index] - channel) * amount),
+  );
+  return `rgb(${channels[0]} ${channels[1]} ${channels[2]})`;
 }
 
 function eigenToWorld(u: number, v: number): Point {
@@ -110,6 +144,14 @@ export default function Home() {
     setRunKey(runRef.current);
   }, []);
 
+  const reset = useCallback(() => {
+    runRef.current += 1;
+    setPlaying(false);
+    setComplete(false);
+    setPhaseLabel("Ready to descend");
+    setRunKey(runRef.current);
+  }, []);
+
   const choosePreset = (preset: PresetId) => {
     if (playing) return;
     setSelected(preset);
@@ -122,6 +164,9 @@ export default function Home() {
     if (!canvas) return;
     const context = canvas.getContext("2d");
     if (!context) return;
+    const surfaceCanvas = document.createElement("canvas");
+    const surfaceContext = surfaceCanvas.getContext("2d");
+    if (!surfaceContext) return;
 
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
     let reducedMotion = media.matches;
@@ -133,8 +178,8 @@ export default function Home() {
     let lastAnnouncedPhase = "";
 
     const phaseTimes = reducedMotion
-      ? { rotateEnd: 300, contourStart: 100, contourEnd: 540, ballStart: 570, ballEnd: 760, descentStart: 850, descentEnd: 2990 }
-      : { rotateEnd: 1900, contourStart: 900, contourEnd: 2800, ballStart: 2880, ballEnd: 3280, descentStart: 3780, descentEnd: 8580 };
+      ? { rotateEnd: 260, contourStart: 180, contourEnd: 620, ballStart: 660, ballEnd: 840, descentStart: 940, descentEnd: 2920 }
+      : { rotateEnd: 1800, contourStart: 950, contourEnd: 2450, ballStart: 2550, ballEnd: 2850, descentStart: 3300, descentEnd: 7600 };
 
     const onMotionChange = (event: MediaQueryListEvent) => {
       reducedMotion = event.matches;
@@ -146,8 +191,21 @@ export default function Home() {
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       width = rect.width;
       height = rect.height;
-      canvas.width = Math.round(width * dpr);
-      canvas.height = Math.round(height * dpr);
+      const pixelWidth = Math.round(width * dpr);
+      const pixelHeight = Math.round(height * dpr);
+      if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+        canvas.width = pixelWidth;
+        canvas.height = pixelHeight;
+      }
+      const surfaceWidth = Math.max(1, Math.round(width));
+      const surfaceHeight = Math.max(1, Math.round(height));
+      if (
+        surfaceCanvas.width !== surfaceWidth ||
+        surfaceCanvas.height !== surfaceHeight
+      ) {
+        surfaceCanvas.width = surfaceWidth;
+        surfaceCanvas.height = surfaceHeight;
+      }
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
@@ -157,6 +215,7 @@ export default function Home() {
 
     const preset = PRESETS[selectedRef.current];
     const path = makePath(preset.rate);
+    const accent = hexToRgb(preset.color);
 
     const draw = (now: number) => {
       const elapsed = playing ? now - startTime : -1;
@@ -185,14 +244,21 @@ export default function Home() {
             ),
           )
         : 0;
+      const landscapeAlpha = !playing
+        ? 1
+        : elapsed < 260
+          ? 1 - easeInOutCubic(clamp(elapsed / 260)) * 0.48
+          : 0.52 + easeInOutCubic(clamp((elapsed - 260) / 640)) * 0.48;
 
       context.clearRect(0, 0, width, height);
 
       const baseScale = Math.min(width / 10.8, height / 7.8);
-      const scale = baseScale * (0.67 + cameraProgress * 0.33);
-      const originX = width * (width < 900 ? 0.5 : 0.67);
-      const originY = height * (0.49 + cameraProgress * 0.005);
-      const pitch = 0.82 * (1 - cameraProgress);
+      const scale = baseScale * (0.36 + cameraProgress * 0.64);
+      const originX = width * (
+        width < 900 ? 0.5 : 0.54 + cameraProgress * 0.14
+      );
+      const originY = height * (0.56 - cameraProgress * 0.065);
+      const pitch = 0.68 * (1 - cameraProgress);
       const yaw = -0.62 + cameraProgress * 0.19;
 
       const project = (x: number, y: number, z: number) => {
@@ -209,18 +275,21 @@ export default function Home() {
         };
       };
 
-      const horizontalSteps = 52;
-      const verticalSteps = 42;
+      const horizontalSteps = 60;
+      const verticalSteps = 50;
       const triangles: {
         points: ReturnType<typeof project>[];
         depth: number;
         tones: [number, number, number];
       }[] = [];
 
-      const xMin = -14;
-      const xMax = 14;
-      const yMin = -10;
-      const yMax = 10;
+      const xExtent = 5.7 + cameraProgress * 10.3;
+      const yFrontExtent = 4.8 + cameraProgress * 9.2;
+      const yBackExtent = 4.8 + cameraProgress * 11.2;
+      const xMin = -xExtent;
+      const xMax = xExtent;
+      const yMin = -yFrontExtent;
+      const yMax = yBackExtent;
       for (let row = 0; row < verticalSteps; row += 1) {
         const y1 = yMin + (row / verticalSteps) * (yMax - yMin);
         const y2 = yMin + ((row + 1) / verticalSteps) * (yMax - yMin);
@@ -252,13 +321,8 @@ export default function Home() {
       }
 
       triangles.sort((a, b) => a.depth - b.depth);
+      surfaceContext.clearRect(0, 0, width, height);
       for (const triangle of triangles) {
-        const surfaceColor = (tone: number) => {
-          const colorPosition = Math.pow(tone, 0.68);
-          const hue = 238 - colorPosition * 232;
-          const lightness = 40 + Math.sin(colorPosition * Math.PI) * 15;
-          return `hsl(${hue} 78% ${lightness}%)`;
-        };
         let lowIndex = 0;
         let highIndex = 0;
         triangle.tones.forEach((tone, index) => {
@@ -267,7 +331,7 @@ export default function Home() {
         });
         const lowPoint = triangle.points[lowIndex];
         const highPoint = triangle.points[highIndex];
-        const color = context.createLinearGradient(
+        const color = surfaceContext.createLinearGradient(
           lowPoint.x,
           lowPoint.y,
           highPoint.x,
@@ -275,19 +339,16 @@ export default function Home() {
         );
         color.addColorStop(0, surfaceColor(triangle.tones[lowIndex]));
         color.addColorStop(1, surfaceColor(triangle.tones[highIndex]));
-        context.beginPath();
-        context.moveTo(triangle.points[0].x, triangle.points[0].y);
-        context.lineTo(triangle.points[1].x, triangle.points[1].y);
-        context.lineTo(triangle.points[2].x, triangle.points[2].y);
-        context.closePath();
-        context.fillStyle = color;
-        context.fill();
-        context.strokeStyle = color;
-        context.lineWidth = 1.2;
-        context.stroke();
+        surfaceContext.beginPath();
+        surfaceContext.moveTo(triangle.points[0].x, triangle.points[0].y);
+        surfaceContext.lineTo(triangle.points[1].x, triangle.points[1].y);
+        surfaceContext.lineTo(triangle.points[2].x, triangle.points[2].y);
+        surfaceContext.closePath();
+        surfaceContext.fillStyle = color;
+        surfaceContext.fill();
       }
 
-      const edgeGradient = context.createRadialGradient(
+      const edgeGradient = surfaceContext.createRadialGradient(
         originX,
         originY,
         scale * 1.1,
@@ -296,20 +357,27 @@ export default function Home() {
         scale * 4.9,
       );
       edgeGradient.addColorStop(0, "rgba(0, 0, 0, 0)");
-      edgeGradient.addColorStop(1, `rgba(0, 0, 0, ${0.1 + 0.06 * (1 - cameraProgress)})`);
-      context.fillStyle = edgeGradient;
-      context.fillRect(0, 0, width, height);
+      edgeGradient.addColorStop(1, `rgba(0, 0, 0, ${0.2 + 0.08 * (1 - cameraProgress)})`);
+      surfaceContext.fillStyle = edgeGradient;
+      surfaceContext.fillRect(0, 0, width, height);
+
+      context.save();
+      context.globalAlpha = landscapeAlpha * 0.86;
+      context.filter = "blur(3.2px)";
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = "high";
+      context.drawImage(surfaceCanvas, 0, 0, width, height);
+      context.restore();
 
       if (contourAlpha > 0) {
         context.save();
         const rings = [
-          0.34, 0.56, 0.79, 1.03, 1.28, 1.53, 1.78, 2.04, 2.3, 2.56,
-          2.82, 3.08, 3.34, 3.62, 3.9, 4.2, 4.52, 4.86, 5.22, 5.6, 6,
+          0.42, 0.7, 1.02, 1.38, 1.78, 2.22, 2.72, 3.28, 3.92, 4.66, 5.5,
         ];
         rings.forEach((radius, ringIndex) => {
-          const revealStart = (ringIndex / rings.length) * 0.72;
+          const revealStart = (ringIndex / rings.length) * 0.62;
           const stagger = easeInOutCubic(
-            clamp((contourAlpha - revealStart) / 0.28),
+            clamp((contourAlpha - revealStart) / 0.38),
           );
           if (stagger <= 0) return;
           context.beginPath();
@@ -322,24 +390,25 @@ export default function Home() {
             if (index === 0) context.moveTo(projected.x, projected.y);
             else context.lineTo(projected.x, projected.y);
           }
-          context.strokeStyle = `rgba(0, 0, 0, ${stagger * 0.48})`;
-          context.lineWidth = ringIndex % 2 === 0 ? 3.4 : 2.8;
-          context.stroke();
-          context.strokeStyle = `rgba(255, 255, 255, ${stagger * 0.72})`;
-          context.lineWidth = ringIndex % 2 === 0 ? 1.35 : 0.95;
+          const prominence = 0.25 - ringIndex * 0.009;
+          context.strokeStyle = `rgba(205, 229, 245, ${stagger * prominence})`;
+          context.lineWidth = ringIndex < 3 ? 1.05 : 0.75;
           context.stroke();
         });
         context.restore();
 
         const minimum = project(0, 0, 0.045);
+        for (const ring of [10, 5.5]) {
+          context.beginPath();
+          context.arc(minimum.x, minimum.y, ring, 0, Math.PI * 2);
+          context.strokeStyle = `rgba(232, 245, 255, ${contourAlpha * (ring === 10 ? 0.08 : 0.16)})`;
+          context.lineWidth = 1;
+          context.stroke();
+        }
         context.beginPath();
-        context.arc(minimum.x, minimum.y, 2.3, 0, Math.PI * 2);
-        context.fillStyle = `rgba(255, 235, 220, ${contourAlpha * 0.84})`;
+        context.arc(minimum.x, minimum.y, 2, 0, Math.PI * 2);
+        context.fillStyle = `rgba(246, 251, 255, ${contourAlpha * 0.92})`;
         context.fill();
-        context.font = "600 9px -apple-system, BlinkMacSystemFont, sans-serif";
-        context.letterSpacing = "1px";
-        context.fillStyle = `rgba(255, 245, 237, ${contourAlpha * 0.56})`;
-        context.fillText("MINIMUM", minimum.x + 10, minimum.y + 3.5);
       }
 
       if (ballProgress > 0) {
@@ -360,14 +429,11 @@ export default function Home() {
           });
           const projectedBall = project(ball.x, ball.y, loss(ball.x, ball.y) * SURFACE_HEIGHT + 0.04);
           context.lineTo(projectedBall.x, projectedBall.y);
-          context.strokeStyle = "rgba(0, 0, 0, 0.68)";
-          context.lineWidth = 10;
+          context.strokeStyle = `rgba(${accent.r}, ${accent.g}, ${accent.b}, 0.16)`;
+          context.lineWidth = 8;
           context.stroke();
-          context.strokeStyle = "rgba(255, 244, 230, 0.98)";
-          context.lineWidth = 3.5;
-          context.stroke();
-          context.strokeStyle = "rgba(255, 141, 91, 0.96)";
-          context.lineWidth = 1.45;
+          context.strokeStyle = `rgba(${accent.r}, ${accent.g}, ${accent.b}, 0.96)`;
+          context.lineWidth = 2.7;
           context.stroke();
           context.restore();
 
@@ -375,32 +441,32 @@ export default function Home() {
             const point = path[index];
             const projected = project(point.x, point.y, loss(point.x, point.y) * SURFACE_HEIGHT + 0.045);
             context.beginPath();
-            context.arc(projected.x, projected.y, 3.15, 0, Math.PI * 2);
-            context.fillStyle = "rgba(0, 0, 0, 0.62)";
+            context.arc(projected.x, projected.y, 3.2, 0, Math.PI * 2);
+            context.fillStyle = `rgba(${accent.r}, ${accent.g}, ${accent.b}, 0.18)`;
             context.fill();
             context.beginPath();
-            context.arc(projected.x, projected.y, 1.75, 0, Math.PI * 2);
-            context.fillStyle = "rgba(255, 248, 239, 0.96)";
+            context.arc(projected.x, projected.y, 1.35, 0, Math.PI * 2);
+            context.fillStyle = `rgba(${accent.r}, ${accent.g}, ${accent.b}, 0.98)`;
             context.fill();
           }
         }
 
         const projectedBall = project(ball.x, ball.y, loss(ball.x, ball.y) * SURFACE_HEIGHT + 0.12);
-        const pop = easeOutBack(ballProgress);
-        const radius = (8.8 + Math.min(width, height) * 0.005) * pop;
+        const pop = easeOutCubic(ballProgress);
+        const radius = (5.4 + Math.min(width, height) * 0.0024) * pop;
         const glow = context.createRadialGradient(
           projectedBall.x,
           projectedBall.y,
           radius * 0.25,
           projectedBall.x,
           projectedBall.y,
-          radius * 2.6,
+          radius * 3.2,
         );
-        glow.addColorStop(0, "rgba(255, 187, 143, 0.44)");
-        glow.addColorStop(1, "rgba(255, 149, 105, 0)");
+        glow.addColorStop(0, `rgba(${accent.r}, ${accent.g}, ${accent.b}, 0.24)`);
+        glow.addColorStop(1, `rgba(${accent.r}, ${accent.g}, ${accent.b}, 0)`);
         context.fillStyle = glow;
         context.beginPath();
-        context.arc(projectedBall.x, projectedBall.y, radius * 2.6, 0, Math.PI * 2);
+        context.arc(projectedBall.x, projectedBall.y, radius * 3.2, 0, Math.PI * 2);
         context.fill();
 
         const sphere = context.createRadialGradient(
@@ -411,16 +477,40 @@ export default function Home() {
           projectedBall.y,
           radius,
         );
-        sphere.addColorStop(0, "#fff5e9");
-        sphere.addColorStop(0.3, "#ffc391");
-        sphere.addColorStop(1, "#f16f59");
+        sphere.addColorStop(0, "rgba(255, 255, 255, 0.96)");
+        sphere.addColorStop(0.36, preset.color);
+        sphere.addColorStop(1, `rgb(${Math.round(accent.r * 0.52)} ${Math.round(accent.g * 0.52)} ${Math.round(accent.b * 0.52)})`);
         context.beginPath();
         context.arc(projectedBall.x, projectedBall.y, radius, 0, Math.PI * 2);
         context.fillStyle = sphere;
         context.fill();
-        context.strokeStyle = "rgba(255, 255, 255, 0.58)";
+        context.strokeStyle = "rgba(255, 255, 255, 0.42)";
         context.lineWidth = 1;
         context.stroke();
+
+        if (elapsed > phaseTimes.descentEnd) {
+          const outcomeProgress = easeOutCubic(
+            clamp((elapsed - phaseTimes.descentEnd) / 520),
+          );
+          const label = preset.summary.toUpperCase();
+          context.save();
+          context.globalAlpha = outcomeProgress;
+          context.font = "650 11px -apple-system, BlinkMacSystemFont, sans-serif";
+          context.letterSpacing = "1.4px";
+          const textWidth = context.measureText(label).width;
+          const labelX = clamp(projectedBall.x + 18, 18, width - textWidth - 36);
+          const labelY = clamp(projectedBall.y - 18, 28, height - 28);
+          context.beginPath();
+          context.roundRect(labelX - 10, labelY - 14, textWidth + 20, 28, 14);
+          context.fillStyle = "rgba(3, 8, 17, 0.78)";
+          context.fill();
+          context.strokeStyle = `rgba(${accent.r}, ${accent.g}, ${accent.b}, 0.34)`;
+          context.lineWidth = 1;
+          context.stroke();
+          context.fillStyle = "rgba(244, 248, 251, 0.9)";
+          context.fillText(label, labelX, labelY + 3.5);
+          context.restore();
+        }
       }
 
       let phase = "Ready to descend";
@@ -436,7 +526,7 @@ export default function Home() {
         setPhaseLabel(phase);
       }
 
-      if (playing && elapsed >= phaseTimes.descentEnd + 650 && !didComplete) {
+      if (playing && elapsed >= phaseTimes.descentEnd + 1150 && !didComplete) {
         didComplete = true;
         setPlaying(false);
         setComplete(true);
@@ -445,7 +535,7 @@ export default function Home() {
       animationRef.current = requestAnimationFrame(draw);
     };
 
-    animationRef.current = requestAnimationFrame(draw);
+    draw(performance.now());
 
     return () => {
       observer.disconnect();
@@ -458,8 +548,8 @@ export default function Home() {
     <main className="experience">
       <section className="hero" aria-labelledby="page-title">
         <div className="intro">
-          <p className="kicker">One surface. Three paths.</p>
-          <h1 id="page-title">The Goldilocks Principle<br />of Learning Rates</h1>
+          <p className="kicker">Gradient descent</p>
+          <h1 id="page-title">The Goldilocks<br />Principle<br />of Learning Rates</h1>
           <p className="lede">
             See how one small number can turn the same downhill direction into
             patience, precision, or chaos.
@@ -472,10 +562,6 @@ export default function Home() {
             aria-label={`Animated loss surface showing the ${PRESETS[selected].label.toLowerCase()} learning-rate path.`}
             role="img"
           />
-          <div className="rate-readout" aria-hidden="true">
-            <span>Learning rate</span>
-            <strong>{PRESETS[selected].rate.toFixed(3)}</strong>
-          </div>
         </div>
       </section>
 
@@ -489,14 +575,14 @@ export default function Home() {
               type="button"
               role="radio"
               aria-checked={selected === id}
-              className={`preset ${selected === id ? "selected" : ""}`}
+              className={`preset preset-${id} ${selected === id ? "selected" : ""}`}
               disabled={playing}
               onClick={() => choosePreset(id)}
             >
               <span className="preset-indicator" />
               <span className="preset-copy">
-                <small>{PRESETS[id].eyebrow}</small>
                 <strong>{PRESETS[id].label}</strong>
+                <small>η {PRESETS[id].rate.toFixed(3)}</small>
               </span>
             </button>
           ))}
@@ -505,18 +591,16 @@ export default function Home() {
         <button
           type="button"
           className="play-button"
-          onClick={play}
+          onClick={complete ? reset : play}
           disabled={playing}
-          aria-label={complete ? "Replay animation" : "Play animation"}
+          aria-label={complete ? "Reset animation" : "Play animation"}
         >
-          <span className={complete ? "replay-icon" : "play-icon"} aria-hidden="true">
+          <span className={complete ? "reset-icon" : "play-icon"} aria-hidden="true">
             {complete ? "↻" : ""}
           </span>
-          <span>{playing ? "Playing" : complete ? "Replay" : "Play"}</span>
+          <span>{playing ? "Playing" : complete ? "Reset" : "Play"}</span>
         </button>
       </section>
-
-      <p className="hint">Choose a pace, then press play</p>
     </main>
   );
 }

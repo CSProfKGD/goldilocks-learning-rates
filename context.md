@@ -14,20 +14,19 @@ Final working title: **The Goldilocks Principle of Learning Rates**.
 
 ## Source-project status
 
-The requested starting point is the **Gradient Descent** project. At the time this file was created, this repository contained no project files, commits, or configured Git remote, and the source project was not available inside the workspace.
-
-Once that source is added, inspect it before locking in the framework, renderer, camera implementation, surface equation, or gradient-descent parameters. Reuse its 3D parabola surface and relevant rendering/math code where sensible.
+The requested starting point was the **Gradient Descent** project, but its source was not available in the workspace. The current implementation was therefore built as a deterministic canvas presentation rather than inventing compatibility with an unseen codebase. It retains the requested single-ball, actual-position trail behavior.
 
 ## Core scene
 
 - One smooth 3D parabola/bowl surface representing the loss landscape. It extends beyond the scene so the browser viewport—not an artificial oval or rectangular model boundary—is the visible clipping boundary.
 - The experience uses a pure black background with no top header, logo strip, status strip, or header divider.
-- Surface coloring follows loss elevation: deep blue at the minimum, then cyan, green, yellow, orange, and red toward the high edges.
+- The surface uses a restrained dark navy-to-indigo elevation palette. Color transitions are continuous and softly rendered, never rainbow-like or visibly meshed.
 - One ball representing the current parameter state.
 - One trail outlining that ball's past positions, matching the treatment used in the source Gradient Descent project.
 - No isocurve plane.
 - No extra balls or side-by-side simulations.
-- Contour/isocurve lines dissolve directly into view as the camera reaches the top view. They span the full visible surface, are computed from the same loss function and height mapping as the bowl, and naturally clip at the browser viewport.
+- A small set of subtle contour/isocurve lines dissolves directly onto the surface as the camera reaches the top view. The reveal radiates from the minimum outward, the curves use the same loss function as the bowl, and they naturally clip at the browser viewport.
+- The opening camera shows the full bowl centered and deliberately zoomed out. The move to the top view combines rotation and zoom using the same slow-in/slow-out easing curve.
 - All three presets use the same surface and the same initial ball position so the motion is directly comparable.
 
 ## Interface
@@ -38,9 +37,9 @@ The bottom control area contains three mutually exclusive learning-rate choices:
 2. `Too large`
 3. `Just right`
 
-It also provides a clear play control that becomes replay after a run. The selected option should be unmistakable but visually quiet. Controls remain anchored and stable while the scene animates.
+Each option includes its numeric learning rate. It also provides a clear play control that becomes `Reset` after a run; Reset returns to the ready frame and waits for a new Play. The selected option is unmistakable but visually quiet, using semantic color and type rather than a boxed selection. Controls live in a compact translucent glass panel and remain anchored and stable while the scene animates.
 
-Initial default: **Just right**, unless the source project's product context suggests otherwise.
+Initial default: **Just right**.
 
 ## Storyboard
 
@@ -49,18 +48,18 @@ The exact timings should be tuned by eye after implementation. The following is 
 | Phase | Approx. time | Visual action |
 | --- | ---: | --- |
 | Ready | Before play | Show the empty 3D parabola from an elegant three-quarter perspective. Bottom controls are visible. Contours and ball are hidden. |
-| Camera move | 0.0–1.9 s | On play, smoothly rotate and slightly reframe the surface toward a true or near-true top view. No hard cut. |
-| Contour reveal | 0.9–2.8 s | As the camera approaches the top view, contour/isocurve lines dissolve in as a radial cascade, beginning at the minimum and progressing slowly outward through successive loss levels. |
+| Camera move | 0.0–1.8 s | On play, smoothly rotate and zoom the centered, distant bowl toward a true or near-true top view. Rotation and zoom ease in and out together; there is no hard cut. |
+| Contour reveal | 0.95–2.45 s | As the camera approaches the top view, the restrained contour field dissolves from the minimum outward. |
 | Ball entrance | 2.88–3.28 s | One ball appears at the shared initial point with a refined pop: fade plus small scale/vertical settle. |
 | Anticipation | 3.28–3.78 s | Brief pause so the viewer registers the start position and contours. |
 | Descent | 3.78 s onward | Run gradient descent using the selected preset. As the ball moves, reveal a trail through its actual past positions. Camera remains stable and the ball's motion is the focus. |
-| Resolve | End | Hold the final state long enough to read the outcome. Play becomes replay; preset choices remain available. |
+| Resolve | End | Hold the final state long enough to read the outcome. Play becomes Reset; preset choices remain available. |
 
 The contour reveal may overlap the latter part of the camera move, but it should not begin so early that the opening perspective becomes visually busy.
 
 ## Learning-rate behaviors
 
-Preset numeric values must be derived from the actual surface scale and gradient implementation after the source project is available. Their qualitative behavior is the requirement.
+The deterministic quadratic uses eigenvalue curvatures `0.56` and `0.23`, 18 updates, and one shared start point. The fixed learning rates are `0.065` (Too low), `3.5` (Too large), and `1.2` (Just right).
 
 ### Too low
 
@@ -86,10 +85,10 @@ Preset numeric values must be derived from the actual surface scale and gradient
 ## Motion language
 
 - Camera: smooth, confident, slow-in/slow-out, with no visible snapping at the end.
-- Contours: staggered or softly progressive dissolve; no harsh simultaneous toggle.
+- Contours: softly progressive radial dissolve from the minimum; no harsh toggle.
 - Ball entrance: restrained overshoot and settle, lasting only a few hundred milliseconds.
 - Gradient descent: positions should come from the optimization algorithm. Interpolate between algorithm steps only to make the true sequence readable and fluid.
-- Trail: extend it from the ball's sampled position history as descent progresses. It uses a high-contrast dark halo, bright core, and visible sampled-position markers so it remains legible across the full blue-to-red surface.
+- Trail: extend it from the ball's sampled position history as descent progresses. Its luminous core, soft halo, and sequential position markers use cyan for Too low, coral for Too large, and green for Just right.
 - Ending: gentle hold, with an optional subtle emphasis of the outcome. Avoid celebratory effects.
 
 ## Suggested state model
@@ -108,17 +107,14 @@ Some visual phases may overlap on the timeline even if the logical state has one
 - Respect reduced-motion preferences with a short crossfade/reframe and fewer interpolated descent movements.
 - Keep controls usable and the bowl legible on smaller screens; adjust framing and spacing rather than shrinking everything indiscriminately.
 
-## Decisions intentionally deferred
+## Resolved implementation choices
 
-These should be resolved after inspecting the source project and making a first visual prototype:
-
-- Framework and rendering library.
-- Exact parabola equation and scale.
-- Exact learning-rate values, iteration counts, and playback duration.
-- Exact trail material, thickness, persistence, and fade behavior; begin by matching the source Gradient Descent project.
-- Final typography, lighting, and surface material details within the established black-background and blue-to-red elevation palette.
-- Whether minimal labels or one-line outcome copy appear after playback.
-- Whether top view is perfectly orthographic or retains a slight perspective for depth.
+- React/Vinext with a high-DPI 2D canvas renderer.
+- Deterministic rotated anisotropic quadratic and fixed presets listed above.
+- Dark navy-to-indigo surface, subdued contour field, and semantic path colors.
+- Near-orthographic top view after an eased 1.8-second rotation-and-zoom move.
+- No minimum label; only a small luminous center marker.
+- A concise outcome word appears after playback.
 
 ## Acceptance criteria
 
@@ -127,5 +123,5 @@ These should be resolved after inspecting the source project and making a first 
 - The visualization never displays an isocurve plane.
 - Each preset produces its intended and visibly distinct behavior from the same start point.
 - The ball leaves a readable trail through its actual past positions, consistent with the source project.
-- Replay fully resets scene, camera, contours, ball, and simulation state.
+- Reset fully restores the ready scene, camera, contours, ball, and simulation state; its label then returns to Play and playback waits.
 - The result feels presentation-grade, not like a raw technical demo.
